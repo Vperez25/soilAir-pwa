@@ -23,8 +23,14 @@ export function rutaCompleta(ruta) {
 
 /** Toma la URL actual del navegador y devuelve la ruta interna de la SPA. */
 export function rutaActual() {
-  const ruta = location.pathname.slice(BASE.length) || '/';
-  return ruta.startsWith('/') ? ruta : `/${ruta}`;
+  let ruta = location.pathname.slice(BASE.length) || '/';
+  if (!ruta.startsWith('/')) ruta = `/${ruta}`;
+
+  // Live Server abre el proyecto como ".../index.html"; para la SPA ese
+  // archivo es la raiz, no una ruta distinta.
+  ruta = ruta.replace(/\/index\.html$/, '/');
+
+  return ruta || '/';
 }
 
 /**
