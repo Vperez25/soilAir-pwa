@@ -28,3 +28,8 @@ Los módulos ES6 no funcionan con `file://`; hace falta un servidor HTTP:
 > `/cultivo/maiz`) y recargar devuelve el 404 del servidor: un servidor estático
 > no reescribe esas rutas hacia `index.html`. La navegación dentro de la app
 > —enlaces, Atrás y Adelante— sí funciona.
+
+### Autores
+
+Vincent Perez Adriano 
+Alejandro Silvestre Amador 
