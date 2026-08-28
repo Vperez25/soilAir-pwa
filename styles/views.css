@@ -1,10 +1,61 @@
-/* ── Portada del listado ──────────────────────────────────────────────────── */
+/* ── Portada del listado ────────────────────────────────────────────────── */
 
 .portada {
   max-width: 46ch;
   margin-bottom: 2.75rem;
 }
 
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--salvia);
+  border-radius: var(--radio);
+  padding: 1.3rem 1.35rem 1.15rem;
+  transition:
+    border-left-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.tarjeta:hover {
+  border-left-color: var(--verde);
+  transform: translateY(-2px);
+}
+
+.tarjeta__nombre {
+  font-family: var(--display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.tarjeta__cientifico {
+  font-style: italic;
+  color: var(--tinta-suave);
+  font-size: 0.9rem;
+  margin: 0.15rem 0 0.8rem;
+}
+
+.tarjeta__datos {
+  display: flex;
+  gap: 1.6rem;
+  margin: 0 0 1.2rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--linea);
+}
+
+.tarjeta__datos dt,
+.lectura__meta dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  margin-bottom: 0.15rem;
+}
+
+.tarjeta__datos dd,
 .portada__eyebrow,
 .prosa__eyebrow,
 .tarjeta__familia,
@@ -15,6 +66,12 @@
   letter-spacing: 0.11em;
   color: var(--tinta-suave);
   margin: 0 0 0.6rem;
+}
+
+.tarjeta__resumen {
+  margin: 0 0 1.1rem;
+  font-size: 0.93rem;
+  color: var(--tinta-suave);
 }
 
 .portada__titulo {
