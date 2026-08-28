@@ -1,0 +1,50 @@
+/* ── Portada del listado ──────────────────────────────────────────────────── */
+
+.portada {
+  max-width: 46ch;
+  margin-bottom: 2.75rem;
+}
+
+.portada__eyebrow,
+.prosa__eyebrow,
+.tarjeta__familia,
+.ficha__familia {
+  font-family: var(--dato);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--tinta-suave);
+  margin: 0 0 0.6rem;
+}
+
+.portada__titulo {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  line-height: 1.05;
+  font-weight: 700;
+  margin: 0 0 0.9rem;
+}
+
+.portada__texto {
+  margin: 0;
+  color: var(--tinta-suave);
+}
+
+/* ── Prosa (Acerca) ───────────────────────────────────────────────────────── */
+
+.prosa {
+  max-width: 62ch;
+}
+
+.prosa h1 {
+  font-family: var(--display);
+  font-size: clamp(2.3rem, 6vw, 3.1rem);
+  line-height: 1.05;
+  margin: 0 0 1.2rem;
+}
+
+.prosa h2 {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  margin: 2.2rem 0 0.6rem;
+}

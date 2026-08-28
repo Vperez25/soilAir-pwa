@@ -1,0 +1,88 @@
+/* ── Encabezado ───────────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem clamp(1rem, 4vw, 2.5rem);
+  background: rgba(242, 233, 225, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--linea);
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--tinta);
+}
+
+.marca__hoja {
+  width: 14px;
+  height: 14px;
+  background: var(--verde);
+  border-radius: 14px 2px 14px 2px;
+  transform: rotate(-12deg);
+}
+
+.marca__texto {
+  font-family: var(--display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.nav {
+  display: flex;
+  gap: 1.4rem;
+}
+
+.nav a {
+  color: var(--tinta-suave);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.nav a:hover {
+  color: var(--tinta);
+}
+
+.nav a.activo {
+  color: var(--verde);
+  border-bottom-color: var(--verde);
+}
+
+/* ── Pie ──────────────────────────────────────────────────────────────────── */
+
+.pie {
+  border-top: 1px solid var(--linea);
+  padding: 1.5rem clamp(1rem, 4vw, 2.5rem);
+  font-size: 0.82rem;
+  color: var(--tinta-suave);
+}
+
+.pie p {
+  margin: 0;
+}
+s .pie_nota {
+  font-family: var(--dato);
+  font-size: 0.74rem;
+  margin-top: 0.3rem;
+}
+
+/* ── Accesibilidad ────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

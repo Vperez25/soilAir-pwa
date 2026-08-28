@@ -1,40 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SoilAir · Catálogo de cultivos</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SoilAir · Catálogo de cultivos</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-    rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="styles/main.css" />
-</head>
-<body>
-  <header class="topbar">
-    <a class="marca" href="/" data-link>
-      <span class="marca__hoja" aria-hidden="true"></span>
-      <span class="marca__texto">SoilAir</span>
-    </a>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/shell.css" />
+    <link rel="stylesheet" href="styles/views.css" />
+    <link rel="stylesheet" href="styles/cultivosView.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="marca" href="/" data-link>
+        <span class="marca__hoja" aria-hidden="true"></span>
+        <span class="marca__texto">SoilAir</span>
+      </a>
 
-    <nav class="nav" aria-label="Navegación principal">
-      <a href="/" data-link>Cultivos</a>
-      <a href="/acerca" data-link>Acerca</a>
-    </nav>
-  </header>
+      <nav class="nav" aria-label="Navegación principal">
+        <a href="/" data-link>Cultivos</a>
+        <a href="/acerca" data-link>Acerca</a>
+      </nav>
+    </header>
 
-  <main id="app" class="contenido" aria-live="polite">
-    <!-- El router monta aquí cada vista -->
-  </main>
+    <main id="app" class="contenido" aria-live="polite">
+      <!-- El router monta aquí cada vista -->
 
-  <footer class="pie">
-    <p>SoilAir — monitoreo de suelo y aire para agricultura de precisión.</p>
-    <p class="pie__nota">Unidad 1, Ejercicio 3 · Mini SPA con módulos ES6</p>
-  </footer>
+      <!-- Skeleton -->
+      <article class="tarjeta">
+        <p class="tarjeta__familia">█████████████</p>
+        <h2 class="tarjeta__nombre">██████████████████</h2>
+        <p class="tarjeta__cientifico">████████████████</p>
+        <p class="tarjeta__resumen">████████████████</p>
 
-  <script type="module" src="src/main.js"></script>
-</body>
+        <dl class="tarjeta__datos">
+          <div>
+            <dt>█████</dt>
+            <dd>████████ █████</dd>
+          </div>
+          <div>
+            <dt>██████████</dt>
+            <dd><code>██████</code></dd>
+          </div>
+        </dl>
+
+        <a class="tarjeta__enlace" data-link> █████████████████████ </a>
+      </article>
+    </main>
+
+    <footer class="pie">
+      <p>SoilAir — monitoreo de suelo y aire para agricultura de precisión.</p>
+      <p class="pie_nota">Unidad 1, Ejercicio 4 · Mobile First y App Shell</p>
+    </footer>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
 </html>
