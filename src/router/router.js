@@ -3,35 +3,52 @@
  * -----------------------------------------------------------------------------
  * Router de historial (History API) para la SPA de SoilAir.
  *
- * Lo que se completó en este archivo (Parte A del ejercicio):
- *   - matchRoute(): antes solo comparaba rutas exactas; ahora entiende
- *     segmentos dinámicos escritos como ":nombre" y devuelve sus valores.
+ * Hay dos formas de escribir una dirección en este proyecto:
+ *
+ *   ruta interna  ->  '/cultivo/maiz'                 (la que conoce el router)
+ *   ruta completa ->  '/soilAir-pwa/cultivo/maiz'     (la que ve el navegador)
+ *
+ * La diferencia entre ambas es BASE_PATH, que vive en src/config.js. Aquí están
+ * las dos funciones que traducen de una a otra:
+ *
+ *   rutaCompleta()  (fullPath)  interna  -> completa   [le PONE el BASE_PATH]
+ *   rutaActual()    (path)      completa -> interna    [le QUITA el BASE_PATH]
  */
+
+import { BASE_PATH, quitarBase } from '../config.js';
 
 /**
- * BASE es la carpeta desde la que se sirve index.html.
- * Se calcula a partir de la URL de este módulo (…/src/router/router.js),
- * así funciona igual si Live Server sirve el proyecto en "/" o en
- * "/ejercicio-3/", sin tocar el código.
+ * Convierte una ruta interna ("/cultivo/maiz") en la URL real del navegador
+ * ("/soilAir-pwa/cultivo/maiz"). Es el `fullPath` de las notas de clase.
+ *
+ * @param {string} ruta ruta interna, con diagonal inicial
+ * @returns {string}
  */
-export const BASE = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
-
-/** Convierte una ruta interna ("/cultivo/maiz") en una URL real del navegador. */
 export function rutaCompleta(ruta) {
-  return `${BASE}${ruta}`;
+  return `${BASE_PATH}${ruta}`;
 }
 
-/** Toma la URL actual del navegador y devuelve la ruta interna de la SPA. */
+/**
+ * Toma la URL actual del navegador y devuelve la ruta interna de la SPA.
+ * Es el `path` de las notas de clase: aquí ocurre el replace del BASE_PATH.
+ *
+ * @returns {string}
+ */
 export function rutaActual() {
-  let ruta = location.pathname.slice(BASE.length) || '/';
-  if (!ruta.startsWith('/')) ruta = `/${ruta}`;
+  // quitarBase() hace el replace del prefijo del repositorio (ver config.js).
+  let ruta = quitarBase(location.pathname);
 
   // Live Server abre el proyecto como ".../index.html"; para la SPA ese
-  // archivo es la raiz, no una ruta distinta.
-  ruta = ruta.replace(/\/index\.html$/, '/');
+  // archivo es la raiz, no una ruta distinta. Lo mismo con 404.html, que en
+  // GitHub Pages es una copia del index para que funcionen los enlaces directos.
+  ruta = ruta.replace(/\/(index|404)\.html$/, '/');
 
   return ruta || '/';
 }
+
+/** Alias con los nombres usados en clase, por si resultan más claros al leer. */
+export const fullPath = rutaCompleta;
+export const path = rutaActual;
 
 /**
  * Compara un patrón de ruta contra una ruta real y extrae los parámetros.
@@ -75,10 +92,17 @@ export class Router {
    * @param {Array<{path: string, view: Function, titulo?: string}>} rutas
    * @param {{contenedor: HTMLElement, noEncontrada: Function}} opciones
    */
-  constructor(rutas, { contenedor, noEncontrada }) {
+  constructor(rutas, { contenedor, noEncontrada, alRenderizar }) {
     this.rutas = rutas;
     this.contenedor = contenedor;
     this.noEncontrada = noEncontrada;
+    // Callback OPCIONAL que se ejecuta con la ruta ya montada. Lo usa main.js
+    // para avisarle al navbar cual seccion debe marcar como activa; asi el
+    // router no necesita conocer el marcado del encabezado.
+    this.alRenderizar = alRenderizar;
+    // Contador de renders: sirve para saber si una vista asíncrona sigue
+    // siendo la que está en pantalla cuando por fin recibe sus datos.
+    this.renderId = 0;
   }
 
   iniciar() {
@@ -108,6 +132,7 @@ export class Router {
   /** Busca la ruta que coincide con la URL actual y monta su vista. */
   async render() {
     const ruta = rutaActual();
+    const token = ++this.renderId;
 
     let encontrada = null;
     let params = null;
@@ -126,17 +151,26 @@ export class Router {
       ? `${encontrada.titulo} · SoilAir`
       : 'Ruta no encontrada · SoilAir';
 
+    const contexto = { params: params ?? {}, ruta };
+
     this.contenedor.innerHTML = '<p class="cargando">Cargando…</p>';
-    this.contenedor.innerHTML = await vista({ params: params ?? {}, ruta });
+    this.contenedor.innerHTML = await vista(contexto);
     window.scrollTo({ top: 0 });
 
-    this.marcarNavActiva(ruta);
-  }
+    this.alRenderizar?.(ruta);
 
-  marcarNavActiva(ruta) {
-    document.querySelectorAll('.nav a[data-link]').forEach((a) => {
-      const suRuta = a.getAttribute('href').slice(BASE.length) || '/';
-      a.classList.toggle('activo', suRuta === ruta);
-    });
+    // Gancho OPCIONAL para vistas que necesitan trabajar sobre el DOM ya
+    // montado (por ejemplo, pedir datos a una API y luego reemplazar el
+    // skeleton). Las vistas que no definen .montar() se comportan exactamente
+    // igual que antes: esta rama simplemente no se ejecuta.
+    if (typeof vista.montar === 'function') {
+      await vista.montar({
+        ...contexto,
+        contenedor: this.contenedor,
+        // vigente() avisa a la vista si el usuario ya navegó a otra ruta,
+        // para que no escriba sobre una pantalla que ya no le pertenece.
+        vigente: () => this.renderId === token,
+      });
+    }
   }
 }

@@ -1,9 +1,20 @@
 <!doctype html>
+<!--
+  404.html — copia de index.html.
+
+  GitHub Pages responde con este archivo cuando la URL no corresponde a un
+  archivo real del repositorio, que es justo lo que pasa con las rutas de la
+  SPA (/clima, /cultivo/maiz…). Al cargar el mismo App Shell y el mismo router,
+  la ruta se resuelve del lado del cliente: si existe, se pinta su vista; si no,
+  el router monta NotFoundView y se ve la pantalla de código 404.
+
+  Si cambias index.html, copia el cambio aquí también.
+-->
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SoilAir · Catálogo de cultivos</title>
+    <title>SoilAir</title>
 
     <!--
       Raíz del sitio. Tiene que ir ANTES de las hojas de estilo y del módulo,
