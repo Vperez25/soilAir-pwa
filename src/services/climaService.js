@@ -16,8 +16,8 @@
  * para pintar. Toda la red vive en ApiService.
  */
 
-import { ApiService } from './apiService.js';
-import { slugify } from '../utils/slugify.js';
+import { ApiService } from "./apiService.js";
+import { slugify } from "../utils/slugify.js";
 
 /**
  * Parcelas de la red SoilAir. El campo `cultivo` corresponde a un cultivo del
@@ -27,25 +27,71 @@ import { slugify } from '../utils/slugify.js';
  * @type {Array<{nodo:string, parcela:string, region:string, cultivo:string, lat:number, lon:number}>}
  */
 const PARCELAS = [
-  { nodo: 'SOILAIR_A1', parcela: 'Invernadero 1', region: 'Villa Guerrero, Méx.', cultivo: 'Jitomate', lat: 18.96, lon: -99.64 },
-  { nodo: 'SOILAIR_B4', parcela: 'Parcela 4 · temporal', region: 'Irapuato, Gto.', cultivo: 'Maíz', lat: 20.68, lon: -101.35 },
-  { nodo: 'SOILAIR_A2', parcela: 'Invernadero 1 · cama sur', region: 'Zumpango, Méx.', cultivo: 'Lechuga', lat: 19.79, lon: -99.1 },
-  { nodo: 'SOILAIR_C1', parcela: 'Túnel 2 · surco 3', region: 'Zamora, Mich.', cultivo: 'Fresa', lat: 19.99, lon: -102.28 },
-  { nodo: 'SOILAIR_D2', parcela: 'Ladera alta · terraza 2', region: 'Zacapoaxtla, Pue.', cultivo: 'Chile Manzano', lat: 19.86, lon: -97.59 },
-  { nodo: 'SOILAIR_B7', parcela: 'Parcela 7 · riego rodado', region: 'Cd. Obregón, Son.', cultivo: 'Trigo', lat: 27.49, lon: -109.94 },
+  {
+    nodo: "SOILAIR_A1",
+    parcela: "Invernadero 1",
+    region: "Villa Guerrero, Méx.",
+    cultivo: "Jitomate",
+    lat: 18.96,
+    lon: -99.64,
+  },
+  {
+    nodo: "SOILAIR_B4",
+    parcela: "Parcela 4 · temporal",
+    region: "Irapuato, Gto.",
+    cultivo: "Maíz",
+    lat: 20.68,
+    lon: -101.35,
+  },
+  {
+    nodo: "SOILAIR_A2",
+    parcela: "Invernadero 1 · cama sur",
+    region: "Zumpango, Méx.",
+    cultivo: "Lechuga",
+    lat: 19.79,
+    lon: -99.1,
+  },
+  {
+    nodo: "SOILAIR_C1",
+    parcela: "Túnel 2 · surco 3",
+    region: "Zamora, Mich.",
+    cultivo: "Fresa",
+    lat: 19.99,
+    lon: -102.28,
+  },
+  {
+    nodo: "SOILAIR_D2",
+    parcela: "Ladera alta · terraza 2",
+    region: "Zacapoaxtla, Pue.",
+    cultivo: "Chile Manzano",
+    lat: 19.86,
+    lon: -97.59,
+  },
+  {
+    nodo: "SOILAIR_B7",
+    parcela: "Parcela 7 · riego rodado",
+    region: "Cd. Obregón, Son.",
+    cultivo: "Trigo",
+    lat: 27.49,
+    lon: -109.94,
+  },
 ];
 
 /** Variables que se le piden a la API para el momento actual. */
 const VARIABLES_ACTUALES = [
-  'temperature_2m',
-  'relative_humidity_2m',
-  'shortwave_radiation',
-  'soil_temperature_0cm',
-  'soil_moisture_0_to_1cm',
+  "temperature_2m",
+  "relative_humidity_2m",
+  "shortwave_radiation",
+  "soil_temperature_0cm",
+  "soil_moisture_0_to_1cm",
 ];
 
 /** Variables del resumen del día. */
-const VARIABLES_DIARIAS = ['temperature_2m_max', 'temperature_2m_min', 'precipitation_sum'];
+const VARIABLES_DIARIAS = [
+  "temperature_2m_max",
+  "temperature_2m_min",
+  "precipitation_sum",
+];
 
 /**
  * Traduce la humedad volumétrica del suelo (m³/m³) y la lluvia esperada en una
@@ -58,20 +104,23 @@ const VARIABLES_DIARIAS = ['temperature_2m_max', 'temperature_2m_min', 'precipit
  */
 function evaluarRiego(humedadSuelo, lluvia) {
   if (humedadSuelo < 0.12) {
-    return { estado: 'critico-bajo', texto: 'Suelo seco · regar hoy' };
+    return { estado: "critico-bajo", texto: "Suelo seco · regar hoy" };
   }
   if (humedadSuelo < 0.2) {
     return lluvia >= 5
-      ? { estado: 'bajo', texto: 'Suelo bajo, pero se espera lluvia' }
-      : { estado: 'bajo', texto: 'Humedad baja · adelantar riego' };
+      ? { estado: "bajo", texto: "Suelo bajo, pero se espera lluvia" }
+      : { estado: "bajo", texto: "Humedad baja · adelantar riego" };
   }
   if (humedadSuelo > 0.4) {
-    return { estado: 'critico-alto', texto: 'Suelo saturado · suspender riego' };
+    return {
+      estado: "critico-alto",
+      texto: "Suelo saturado · suspender riego",
+    };
   }
   if (lluvia >= 10) {
-    return { estado: 'alto', texto: 'Lluvia fuerte prevista · no regar' };
+    return { estado: "alto", texto: "Lluvia fuerte prevista · no regar" };
   }
-  return { estado: 'optimo', texto: 'Humedad en rango · sin acción' };
+  return { estado: "optimo", texto: "Humedad en rango · sin acción" };
 }
 
 /**
@@ -91,15 +140,40 @@ function normalizar(parcela, datos) {
     ...parcela,
     cultivoId: slugify(parcela.cultivo),
     hora: actual.time ?? null,
-    zona: datos.timezone_abbreviation ?? '',
+    zona: datos.timezone_abbreviation ?? "",
     elevacion: datos.elevation ?? null,
     // Bloque AIRE + bloque SUELO, ya con etiqueta y unidad para pintarse tal cual.
     metricas: [
-      { clave: 'temperatura', etiqueta: 'Aire', valor: actual.temperature_2m, unidad: '°C' },
-      { clave: 'humedad', etiqueta: 'Humedad', valor: actual.relative_humidity_2m, unidad: '%' },
-      { clave: 'radiacion', etiqueta: 'Radiación', valor: actual.shortwave_radiation, unidad: 'W/m²' },
-      { clave: 'suelo-temp', etiqueta: 'Suelo', valor: actual.soil_temperature_0cm, unidad: '°C' },
-      { clave: 'suelo-hum', etiqueta: 'Agua en suelo', valor: redondear(humedadSuelo * 100, 0), unidad: '%' },
+      {
+        clave: "temperatura",
+        etiqueta: "Aire",
+        valor: actual.temperature_2m,
+        unidad: "°C",
+      },
+      {
+        clave: "humedad",
+        etiqueta: "Humedad",
+        valor: actual.relative_humidity_2m,
+        unidad: "%",
+      },
+      {
+        clave: "radiacion",
+        etiqueta: "Radiación",
+        valor: actual.shortwave_radiation,
+        unidad: "W/m²",
+      },
+      {
+        clave: "suelo-temp",
+        etiqueta: "Suelo",
+        valor: actual.soil_temperature_0cm,
+        unidad: "°C",
+      },
+      {
+        clave: "suelo-hum",
+        etiqueta: "Agua en suelo",
+        valor: redondear(humedadSuelo * 100, 0),
+        unidad: "%",
+      },
     ],
     maxima: dia.temperature_2m_max?.[0] ?? null,
     minima: dia.temperature_2m_min?.[0] ?? null,
@@ -110,14 +184,14 @@ function normalizar(parcela, datos) {
 
 /** Redondeo corto; evita los 14.800000000000001 al pintar. */
 function redondear(valor, decimales = 1) {
-  if (typeof valor !== 'number' || Number.isNaN(valor)) return null;
+  if (typeof valor !== "number" || Number.isNaN(valor)) return null;
   const factor = 10 ** decimales;
   return Math.round(valor * factor) / factor;
 }
 
 class ClimaService extends ApiService {
   constructor() {
-    super('https://api.open-meteo.com', { timeout: 12000 });
+    super("https://api.open-meteo.com", { timeout: 5000 });
   }
 
   /** Las parcelas configuradas, por si la vista necesita pintar el esqueleto. */
@@ -132,20 +206,20 @@ class ClimaService extends ApiService {
    * @throws {ApiError} lo que haya lanzado ApiService.get()
    */
   async obtenerCondiciones() {
-    const datos = await this.get('/v1/forecast', {
+    const datos = await this.get("/v1/forecast", {
       latitude: PARCELAS.map((p) => p.lat),
       longitude: PARCELAS.map((p) => p.lon),
       current: VARIABLES_ACTUALES,
       daily: VARIABLES_DIARIAS,
       forecast_days: 1,
-      timezone: 'auto',
+      timezone: "auto",
     });
 
     // Con una sola coordenada la API devuelve un objeto; con varias, un arreglo.
     const lista = Array.isArray(datos) ? datos : [datos];
 
     if (lista.length !== PARCELAS.length) {
-      throw new Error('La API devolvió menos parcelas de las solicitadas.');
+      throw new Error("La API devolvió menos parcelas de las solicitadas.");
     }
 
     return PARCELAS.map((parcela, i) => normalizar(parcela, lista[i]));

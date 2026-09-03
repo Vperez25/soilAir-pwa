@@ -15,7 +15,7 @@
  * saber nada del repositorio. Este módulo es el que los traduce.
  */
 
-import { BASE_PATH, quitarBase } from '../config.js';
+import { BASE_PATH, quitarBase } from "../config.js";
 
 /**
  * Ruta interna -> href real del navegador.
@@ -35,8 +35,8 @@ export function linkPath(ruta) {
  * Se llama una sola vez, al arrancar la aplicación.
  */
 export function montarNavbar() {
-  document.querySelectorAll('.topbar a[data-link]').forEach((enlace) => {
-    enlace.setAttribute('href', linkPath(enlace.getAttribute('href')));
+  document.querySelectorAll(".topbar a[data-link]").forEach((enlace) => {
+    enlace.setAttribute("href", linkPath(enlace.getAttribute("href")));
   });
 }
 
@@ -48,8 +48,8 @@ export function montarNavbar() {
  * @param {string} ruta ruta interna actual (la que devuelve rutaActual())
  */
 export function marcarActivo(ruta) {
-  document.querySelectorAll('.nav a[data-link]').forEach((enlace) => {
-    const suRuta = quitarBase(enlace.getAttribute('href'));
-    enlace.classList.toggle('activo', suRuta === ruta);
+  document.querySelectorAll(".nav a[data-link]").forEach((enlace) => {
+    const suRuta = quitarBase(enlace.getAttribute("href"));
+    enlace.classList.toggle("activo", suRuta === ruta);
   });
 }

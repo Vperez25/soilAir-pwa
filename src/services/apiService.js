@@ -20,11 +20,14 @@ export class ApiError extends Error {
   /**
    * @param {string} mensaje texto que la vista puede mostrar al usuario
    * @param {number} [estado] código HTTP, si lo hubo
+   * @param {'network'|'timeout'|'http'} [tipo] categoría del error
+   * @param {string} [nombreOriginal] nombre del error original de fetch
    */
-  constructor(mensaje, estado) {
+  constructor(mensaje, estado, tipo, nombreOriginal) {
     super(mensaje);
-    this.name = 'ApiError';
+    this.name = nombreOriginal || "ApiError";
     this.estado = estado;
+    this.tipo = tipo;
   }
 }
 
@@ -33,8 +36,8 @@ export class ApiService {
    * @param {string} baseUrl raíz de la API (sin diagonal final)
    * @param {{timeout?: number}} [opciones] milisegundos antes de abortar
    */
-  constructor(baseUrl, { timeout = 10000 } = {}) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+  constructor(baseUrl, { timeout = 5000 } = {}) {
+    this.baseUrl = baseUrl.replace(/\/$/, "");
     this.timeout = timeout;
   }
 
@@ -52,7 +55,10 @@ export class ApiService {
     for (const [clave, valor] of Object.entries(params)) {
       if (valor === undefined || valor === null) continue;
       // Un arreglo se manda como lista separada por comas (formato Open-Meteo).
-      url.searchParams.set(clave, Array.isArray(valor) ? valor.join(',') : String(valor));
+      url.searchParams.set(
+        clave,
+        Array.isArray(valor) ? valor.join(",") : String(valor),
+      );
     }
 
     return url.toString();
@@ -69,41 +75,60 @@ export class ApiService {
   async get(ruta, params = {}) {
     const url = this.construirUrl(ruta, params);
 
-    // AbortController: si la respuesta no llega a tiempo, cancelamos el fetch
-    // en lugar de dejar el indicador de carga girando para siempre.
-    const control = new AbortController();
-    const reloj = setTimeout(() => control.abort(), this.timeout);
-
     let respuesta;
 
-    try {
-      respuesta = await fetch(url, {
-        signal: control.signal,
-        headers: { Accept: 'application/json' },
-      });
-    } catch (error) {
-      // Aquí caen la falta de internet, el DNS caído y el abort del timeout.
-      throw new ApiError(
-        error.name === 'AbortError'
-          ? 'El servidor tardó demasiado en responder.'
-          : 'No se pudo conectar con el servicio. Revisa tu conexión a internet.'
-      );
-    } finally {
-      clearTimeout(reloj);
+    // Solo los errores TypeError de red/CORS se intentan una segunda vez.
+    for (let intento = 0; intento < 2; intento++) {
+      // Cada intento necesita su propio AbortController y su propio reloj.
+      const control = new AbortController();
+      const reloj = setTimeout(() => control.abort(), this.timeout);
+
+      try {
+        respuesta = await fetch(url, {
+          signal: control.signal,
+          headers: { Accept: "application/json" },
+        });
+        break;
+      } catch (error) {
+        if (error.name === "TypeError" && intento === 0) {
+          console.log("Error de red/CORS. Reintentando la petición...");
+          continue;
+        }
+
+        // Aquí se distinguen la falta de internet, CORS y el timeout.
+        if (error.name === "AbortError") {
+          throw new ApiError(
+            "El servidor tardó demasiado en responder.",
+            undefined,
+            "timeout",
+            "AbortError",
+          );
+        }
+
+        throw new ApiError(
+          "No se pudo conectar con el servicio. Revisa tu conexión a internet.",
+          undefined,
+          "network",
+          error.name === "TypeError" ? "TypeError" : error.name,
+        );
+      } finally {
+        clearTimeout(reloj);
+      }
     }
 
     // fetch NO lanza error con 404 ni con 500: hay que revisarlo a mano.
     if (!respuesta.ok) {
       throw new ApiError(
-        `El servicio respondió con un error ${respuesta.status} (${respuesta.statusText || 'sin detalle'}).`,
-        respuesta.status
+        `El servicio respondió con un error ${respuesta.status} (${respuesta.statusText || "sin detalle"}).`,
+        respuesta.status,
+        "http",
       );
     }
 
     try {
       return await respuesta.json();
     } catch {
-      throw new ApiError('La respuesta del servicio no venía en formato JSON.');
+      throw new ApiError("La respuesta del servicio no venía en formato JSON.");
     }
   }
 }

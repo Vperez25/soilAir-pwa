@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SoilAir · Catálogo de cultivos</title>
+    <link rel="icon" type="image/png" href="images/favicon.png" />
 
     <!--
       Raíz del sitio. Tiene que ir ANTES de las hojas de estilo y del módulo,
@@ -16,11 +17,12 @@
     -->
     <script>
       (function () {
-        var REPO = 'soilAir-pwa';
+        var REPO = "soilAir-pwa";
         var enPages =
-          location.pathname === '/' + REPO || location.pathname.indexOf('/' + REPO + '/') === 0;
-        var etiqueta = document.createElement('base');
-        etiqueta.href = enPages ? '/' + REPO + '/' : '/';
+          location.pathname === "/" + REPO ||
+          location.pathname.indexOf("/" + REPO + "/") === 0;
+        var etiqueta = document.createElement("base");
+        etiqueta.href = enPages ? "/" + REPO + "/" : "/";
         document.head.appendChild(etiqueta);
       })();
     </script>
@@ -79,7 +81,9 @@
 
     <footer class="pie">
       <p>SoilAir — monitoreo de suelo y aire para agricultura de precisión.</p>
-      <p class="pie_nota">Unidad 1, Ejercicio 5 · Consumo de API REST con fetch</p>
+      <p class="pie_nota">
+        Unidad 1, Ejercicio 5 · Consumo de API REST con fetch
+      </p>
     </footer>
 
     <script type="module" src="src/main.js"></script>

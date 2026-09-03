@@ -7,8 +7,8 @@
  * descarga aquí: eso ocurre al abrir un detalle.
  */
 
-import { CULTIVOS } from '../services/cultivosIndex.js';
-import { CultivoCard } from '../components/CultivoCard.js';
+import { CULTIVOS } from "../services/cultivosIndex.js";
+import { CultivoCard } from "../components/CultivoCard.js";
 
 export function HomeView() {
   return `
@@ -23,7 +23,7 @@ export function HomeView() {
     </section>
 
     <section class="rejilla" aria-label="Cultivos">
-      ${CULTIVOS.map(CultivoCard).join('')}
+      ${CULTIVOS.map(CultivoCard).join("")}
     </section>
   `;
 }
