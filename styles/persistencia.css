@@ -1,0 +1,238 @@
+/* =============================================================================
+   Capa de persistencia · estilos propios
+
+   Tres piezas que no existían antes del ejercicio:
+     - .tema     botón claro/oscuro del App Shell
+     - .avisos   franja de avisos NO bloqueantes
+     - .diag-*   vista /diagnostico
+
+   Mobile First, como el resto del proyecto, y sin un solo color literal: todo
+   sale de las variables de main.css para que el tema oscuro funcione solo.
+   ============================================================================= */
+
+/* ── Botón de tema ────────────────────────────────────────────────────────── */
+
+.tema {
+  /* En móvil comparte fila con la marca; en escritorio va al final.
+     Ver el reparto completo en el comentario de .topbar (shell.css). */
+  order: 1;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--texto);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--tinta-suave);
+  background: transparent;
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.tema:hover {
+  border-color: var(--verde);
+  color: var(--verde);
+}
+
+.tema__icono {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+@media (min-width: 620px) {
+  .tema {
+    order: 2;
+  }
+}
+
+/* ── Avisos no bloqueantes ────────────────────────────────────────────────── */
+
+/*
+  Van fijos abajo a la derecha y NO interceptan clics (pointer-events: none en
+  la franja, auto solo en cada aviso). Un fallo de almacenamiento no debe
+  impedir seguir usando la app, que es justo el punto del ejercicio.
+*/
+.avisos {
+  position: fixed;
+  z-index: 50;
+  left: clamp(0.75rem, 4vw, 1.5rem);
+  right: clamp(0.75rem, 4vw, 1.5rem);
+  bottom: clamp(0.75rem, 4vw, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.aviso {
+  pointer-events: auto;
+  position: relative;
+  max-width: 46ch;
+  margin: 0;
+  padding: 0.7rem 2.4rem 0.7rem 0.9rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--tinta);
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--salvia);
+  border-radius: var(--radio);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.14);
+}
+
+.aviso--error {
+  border-left-color: var(--critico-alto);
+}
+
+.aviso__cerrar {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.35rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--tinta-suave);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.35rem;
+  cursor: pointer;
+}
+
+.aviso__cerrar:hover {
+  color: var(--tinta);
+}
+
+/* ── Vista /diagnostico ───────────────────────────────────────────────────── */
+
+.diag-rejilla {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 60rem) {
+  .diag-rejilla {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.diag-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--verde);
+  border-radius: var(--radio);
+  padding: 1.3rem 1.35rem 1.15rem;
+}
+
+/* Mecanismo que el navegador bloquea: se ve apagado, pero sigue en pantalla. */
+.diag-tarjeta--inactiva {
+  border-left-color: var(--critico-alto);
+}
+
+.diag-tarjeta__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.diag-tarjeta__titulo {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.diag-tarjeta__estado {
+  font-family: var(--dato);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--verde);
+}
+
+.diag-tarjeta--inactiva .diag-tarjeta__estado {
+  color: var(--critico-alto);
+}
+
+.diag-tarjeta__dato {
+  margin: 0;
+  font-size: 0.93rem;
+  color: var(--tinta-suave);
+}
+
+/* Contenido real del almacén. */
+
+.diag__filas,
+.diag-tarjeta__meta {
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.diag__filas {
+  padding: 0.85rem 0.9rem;
+  background: var(--nota);
+  border-radius: var(--radio);
+}
+
+.diag__filas dt,
+.diag-tarjeta__meta dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  margin-bottom: 0.15rem;
+}
+
+.diag__filas dd,
+.diag-tarjeta__meta dd {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+/* Los valores crudos pueden ser largos y no tienen espacios donde cortar. */
+.diag__filas code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.diag__vacio,
+.diag__bloqueado {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  font-size: 0.86rem;
+  color: var(--tinta-suave);
+  background: var(--nota);
+  border-radius: var(--radio);
+}
+
+.diag__bloqueado {
+  color: var(--critico-alto);
+}
+
+.diag-tarjeta__meta {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--linea);
+}
+
+.diag-tarjeta .clima-boton {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.diag-tarjeta .clima-boton[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

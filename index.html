@@ -27,6 +27,41 @@
       })();
     </script>
 
+    <!--
+      Tema guardado (localStorage), aplicado ANTES de pintar.
+
+      Si esto se dejara para src/services/temaService.js, el navegador ya habría
+      dibujado la página en claro cuando el módulo bajara: se vería un
+      parpadeo blanco al entrar con el tema oscuro. Por eso el arranque va
+      inline y sin `defer`, igual que el <base> de arriba.
+
+      Es la ÚNICA lectura de localStorage fuera de utils/almacenamiento.js, y va
+      dentro de try/catch por lo mismo: en navegación privada estricta el simple
+      acceso a localStorage lanza SecurityError.
+    -->
+    <script>
+      (function () {
+        var CLAVE = "soilair:tema";
+        var tema;
+
+        try {
+          tema = localStorage.getItem(CLAVE);
+        } catch (e) {
+          tema = null;
+        }
+
+        if (tema !== "claro" && tema !== "oscuro") {
+          tema =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "oscuro"
+              : "claro";
+        }
+
+        document.documentElement.setAttribute("data-tema", tema);
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -39,6 +74,7 @@
     <link rel="stylesheet" href="styles/views.css" />
     <link rel="stylesheet" href="styles/cultivosView.css" />
     <link rel="stylesheet" href="styles/climaView.css" />
+    <link rel="stylesheet" href="styles/persistencia.css" />
   </head>
   <body>
     <header class="topbar">
@@ -51,8 +87,32 @@
         <a href="/" data-link>Cultivos</a>
         <a href="/clima" data-link>Clima</a>
         <a href="/acerca" data-link>Acerca</a>
+        <a href="/diagnostico" data-link>Diagnóstico</a>
       </nav>
+
+      <!--
+        Selector de tema. Igual que el navbar: el marcado vive aquí porque es
+        App Shell, y la lógica en src/components/SelectorTema.js.
+        El aria-label lo reescribe ese módulo con la acción que toca.
+      -->
+      <button
+        type="button"
+        id="selector-tema"
+        class="tema"
+        aria-label="Cambiar el tema de la interfaz"
+      >
+        <span class="tema__icono" aria-hidden="true">☀</span>
+        <span class="tema__texto">Claro</span>
+      </button>
     </header>
+
+    <!--
+      Avisos NO bloqueantes (almacenamiento bloqueado, cuota llena…).
+      Está en el HTML y no lo crea el JS porque un aria-live tiene que existir
+      en el DOM ANTES de recibir texto; si se inserta ya con contenido, los
+      lectores de pantalla no anuncian nada.
+    -->
+    <div id="avisos" class="avisos" role="status" aria-live="polite"></div>
 
     <main id="app" class="contenido" aria-live="polite">
       <!-- El router monta aquí cada vista -->
@@ -82,7 +142,8 @@
     <footer class="pie">
       <p>SoilAir — monitoreo de suelo y aire para agricultura de precisión.</p>
       <p class="pie_nota">
-        Unidad 1, Ejercicio 5 · Consumo de API REST con fetch
+        Unidad 2, Ejercicio 3 · Persistencia en el cliente (localStorage,
+        sessionStorage y cookies)
       </p>
     </footer>
 

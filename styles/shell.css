@@ -1,15 +1,25 @@
 /* ── Encabezado ───────────────────────────────────────────────────────────── */
 
+/*
+  Mobile First. Con cuatro secciones más el botón de tema ya no cabe todo en
+  una línea de 360 px, así que en móvil el encabezado se parte en dos filas:
+
+      [ SoilAir ................... ☀ Claro ]
+      [ Cultivos  Clima  Acerca  Diagnóstico ]
+
+  A partir de 620 px vuelve a ser una sola línea, con el botón al final. El
+  reparto se hace con `order` y `flex-basis`, no duplicando el marcado.
+*/
 .topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.6rem 1rem;
   padding: 0.9rem clamp(1rem, 4vw, 2.5rem);
-  background: rgba(242, 233, 225, 0.92);
+  background: var(--velo);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid var(--linea);
 }
@@ -20,6 +30,9 @@
   gap: 0.55rem;
   text-decoration: none;
   color: var(--tinta);
+  /* Empuja al resto del encabezado hacia la derecha; sustituye al
+     justify-content: space-between, que con flex-wrap dejaba huecos raros. */
+  margin-right: auto;
 }
 
 .marca__hoja {
@@ -39,7 +52,19 @@
 
 .nav {
   display: flex;
-  gap: 1.4rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+  /* Segunda fila completa en móvil (ver el comentario de .topbar). */
+  order: 2;
+  flex-basis: 100%;
+}
+
+@media (min-width: 620px) {
+  .nav {
+    order: 1;
+    flex-basis: auto;
+    gap: 1.4rem;
+  }
 }
 
 .nav a {
@@ -72,7 +97,8 @@
 .pie p {
   margin: 0;
 }
-s .pie_nota {
+
+.pie_nota {
   font-family: var(--dato);
   font-size: 0.74rem;
   margin-top: 0.3rem;

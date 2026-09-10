@@ -3,7 +3,20 @@
    Paleta y tipografía tomadas de la app móvil (AppLightTheme + CrimsonText).
    ============================================================================= */
 
+/* ── Temas ────────────────────────────────────────────────────────────────────
+   El tema se cambia con el atributo data-tema en <html>, no con una clase en
+   <body>: así lo puede fijar el script de arranque de index.html antes de que
+   exista el <body>, y no hay parpadeo al entrar.
+
+   Regla de la casa: NINGÚN color se escribe suelto en una hoja de estilos. Todo
+   pasa por estas variables, porque el tema oscuro no es más que volver a
+   declararlas. Si aparece un #hex fuera de este archivo, el tema oscuro se
+   rompe justo ahí.
+   ---------------------------------------------------------------------------- */
+
 :root {
+  color-scheme: light;
+
   --fondo: #f2e9e1;
   --tarjeta: #faf5ef;
   --verde: #619a63;
@@ -21,12 +34,51 @@
   --critico-bajo: #37449b;
   --critico-alto: #a6483f;
 
+  /* Fondos derivados: antes estaban a mano dentro de cada vista. */
+  --codigo: #ece0d4; /* <code> y píldoras */
+  --velo: rgba(242, 233, 225, 0.92); /* encabezado translúcido */
+  --fantasma: #e6d9cb; /* skeletons y barras vacías */
+  --ideal: rgba(97, 154, 99, 0.45); /* franja del rango ideal */
+  --nota: rgba(179, 191, 142, 0.28); /* bloque de notas */
+
   --display: "Crimson Text", Georgia, serif;
   --texto: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --dato: "IBM Plex Mono", ui-monospace, monospace;
 
   --radio: 10px;
   --ancho: 1040px;
+}
+
+/*
+  Tema oscuro. No es "el claro invertido": se mantiene la base cálida de la app
+  móvil (marrones, no grises azulados) y se SUBEN los acentos, porque el verde
+  y el rojo arcilla originales no llegan al contraste mínimo sobre fondo oscuro.
+*/
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+
+  --fondo: #17140f;
+  --tarjeta: #221d17;
+  --verde: #86bd89;
+  --salvia: #9aa878;
+  --arcilla: #dd9184;
+  --alerta: #e8a184;
+
+  --tinta: #f1e8dd;
+  --tinta-suave: #a99b8c;
+  --linea: #372f26;
+
+  --optimo: #86bd89;
+  --bajo: #6ab4d1;
+  --alto: #e8a184;
+  --critico-bajo: #8b95dd;
+  --critico-alto: #dd9184;
+
+  --codigo: #2d2620;
+  --velo: rgba(23, 20, 15, 0.92);
+  --fantasma: #2d2620;
+  --ideal: rgba(134, 189, 137, 0.32);
+  --nota: rgba(154, 168, 120, 0.16);
 }
 
 *,
@@ -43,6 +95,11 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  /* El salto entre temas es instantáneo si no se suaviza aquí.
+     La media query de prefers-reduced-motion en shell.css lo desactiva. */
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 a {
@@ -57,7 +114,7 @@ a {
 code {
   font-family: var(--dato);
   font-size: 0.86em;
-  background: #ece0d4;
+  background: var(--codigo);
   padding: 0.1em 0.4em;
   border-radius: 4px;
 }

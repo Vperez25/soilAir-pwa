@@ -178,7 +178,7 @@
 
 .bloque-fantasma {
   color: transparent;
-  background: #e6d9cb;
+  background: var(--fantasma);
   border-radius: 4px;
   user-select: none;
   animation: latido 1.4s ease-in-out infinite;
@@ -223,4 +223,66 @@
   margin: 0 0 1rem;
   color: var(--tinta-suave);
   font-size: 0.93rem;
+}
+
+/* ── Filtro persistente (sessionStorage) ──────────────────────────── */
+
+/*
+  El campo vive dentro de .clima-barra, que va en mayúsculas y espaciada:
+  el input tiene que deshacer las dos cosas o el texto tecleado se ve como una
+  etiqueta y no como un dato editable.
+*/
+
+.clima-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.clima-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.clima-filtro__etiqueta {
+  color: var(--tinta-suave);
+}
+
+.clima-filtro__campo {
+  width: min(15rem, 42vw);
+  font-family: var(--texto);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta);
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 0.35rem 0.7rem;
+}
+
+.clima-filtro__campo::placeholder {
+  color: var(--tinta-suave);
+  opacity: 0.75;
+}
+
+.clima-filtro__campo:focus {
+  border-color: var(--verde);
+}
+
+/* Ningún resultado: el filtro guardado no coincide con ninguna parcela. */
+.clima-vacio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.2rem 1.35rem;
+  font-size: 0.9rem;
+  color: var(--tinta-suave);
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
 }

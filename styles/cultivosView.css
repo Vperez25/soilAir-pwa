@@ -165,7 +165,7 @@
   position: relative;
   height: 9px;
   border-radius: 9px;
-  background: #e6d9cb;
+  background: var(--fantasma);
   overflow: hidden;
 }
 
@@ -173,7 +173,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  background: rgba(97, 154, 99, 0.45);
+  background: var(--ideal);
 }
 
 .metrica__marca {
@@ -209,7 +209,7 @@
 
 .notas {
   padding: 1.2rem 1.35rem;
-  background: rgba(179, 191, 142, 0.28);
+  background: var(--nota);
   border-radius: var(--radio);
 }
 
