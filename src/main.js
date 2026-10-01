@@ -22,6 +22,7 @@ import { registrarVisita } from './services/visitasService.js';
 import { HomeView } from './views/HomeView.js';
 import { AboutView } from './views/AboutView.js';
 import { ClimaView } from './views/ClimaView.js';
+import { BitacoraView } from './views/BitacoraView.js';
 import { CultivoDetailView } from './views/CultivoDetailView.js';
 import { DiagnosticoView } from './views/DiagnosticoView.js';
 import { NotFoundView } from './views/NotFoundView.js';
@@ -29,6 +30,7 @@ import { NotFoundView } from './views/NotFoundView.js';
 const rutas = [
   { path: '/', view: HomeView, titulo: 'Catálogo de cultivos' },
   { path: '/clima', view: ClimaView, titulo: 'Condiciones en campo' },
+  { path: '/bitacora', view: BitacoraView, titulo: 'Bitácora de campo' },
   { path: '/acerca', view: AboutView, titulo: 'Acerca' },
   { path: '/diagnostico', view: DiagnosticoView, titulo: 'Diagnóstico de almacenamiento' },
   { path: '/cultivo/:id', view: CultivoDetailView, titulo: 'Ficha del cultivo' },

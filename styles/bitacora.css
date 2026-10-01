@@ -1,0 +1,198 @@
+/* =============================================================================
+   Vista /bitacora · notas de campo guardadas en IndexedDB
+
+   Mobile First. Reutiliza de climaView.css el botón (.clima-boton), la barra con
+   el filtro (.clima-barra / .clima-filtro), el bloque de error (.clima-error) y
+   el aviso de lista vacía (.clima-vacio), para que la vista se vea como el resto.
+
+   Sin colores literales: todo sale de las variables de main.css, así el tema
+   oscuro funciona solo.
+   ============================================================================= */
+
+/* ── Formulario ───────────────────────────────────────────────────────────── */
+
+.bitacora-form {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 2rem;
+  padding: 1.3rem 1.35rem 1.15rem;
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--verde);
+  border-radius: var(--radio);
+}
+
+.bitacora-form__titulo {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.bitacora-form__campos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+@media (min-width: 40rem) {
+  .bitacora-form__campos {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .campo--ancho {
+    grid-column: 1 / -1;
+  }
+}
+
+.campo {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.campo__etiqueta {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+}
+
+.campo__control {
+  width: 100%;
+  font-family: var(--texto);
+  font-size: 0.93rem;
+  color: var(--tinta);
+  background: var(--fondo);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 0.5rem 0.7rem;
+}
+
+.campo__control:focus {
+  border-color: var(--verde);
+}
+
+textarea.campo__control {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.campo__control::placeholder {
+  color: var(--tinta-suave);
+  opacity: 0.75;
+}
+
+/* Pie del formulario: botón + resultado de la última operación. */
+
+.bitacora-form__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bitacora-form .clima-boton {
+  border-color: var(--verde);
+}
+
+.bitacora-form .clima-boton:hover {
+  border-color: var(--arcilla);
+}
+
+.bitacora-form .clima-boton[disabled],
+.bitacora-entrada .clima-boton[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*
+  El mensaje es una región aria-live: tiene que seguir en el DOM (y en el árbol
+  de accesibilidad) aunque esté vacía, o el lector de pantalla no anuncia el
+  texto que llegue después. Por eso no se oculta con display:none, solo se queda
+  sin relleno ni borde mientras no dice nada.
+*/
+.bitacora-mensaje {
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--tinta);
+  background: var(--nota);
+  border-left: 3px solid var(--verde);
+  border-radius: var(--radio);
+}
+
+.bitacora-mensaje--error {
+  border-left-color: var(--critico-alto);
+}
+
+.bitacora-mensaje:empty {
+  padding: 0;
+  border: 0;
+}
+
+/* ── Listado ──────────────────────────────────────────────────────────────── */
+
+.bitacora-lista {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bitacora-entrada {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem 1.2rem 1.05rem;
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--salvia);
+  border-radius: var(--radio);
+}
+
+.bitacora-entrada__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+}
+
+.bitacora-entrada__cultivo {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.bitacora-etiqueta {
+  font-family: var(--dato);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  background: var(--codigo);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+
+.bitacora-entrada__fecha {
+  margin-left: auto;
+  font-family: var(--dato);
+  font-size: 0.74rem;
+  color: var(--tinta-suave);
+}
+
+/* La nota es texto libre: respeta los saltos de línea y corta las palabras
+   larguísimas en vez de ensanchar la tarjeta. */
+.bitacora-entrada__nota {
+  margin: 0;
+  font-size: 0.93rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bitacora-entrada .clima-boton {
+  justify-self: start;
+}
