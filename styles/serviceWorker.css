@@ -1,5 +1,6 @@
 /* =============================================================================
-   Vista /service-worker · estado, verificador de scope y experimentos
+   Panel del Service Worker en /diagnostico · estado, verificador de scope y
+   experimentos
 
    Mobile First. Sin colores literales: todo sale de las variables de main.css
    para que el tema oscuro funcione solo. Reutiliza .clima-boton (climaView.css).

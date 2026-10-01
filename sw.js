@@ -12,7 +12,7 @@
  * POR QUÉ ESTÁ EN LA RAÍZ Y NO EN src/
  * El scope máximo de un Service Worker es la carpeta donde vive su script. Un
  * sw.js dentro de src/ solo podría controlar /src/...; en la raíz puede
- * controlar toda la app. Ver el experimento en la vista /service-worker.
+ * controlar toda la app. Ver el experimento en la vista /diagnostico.
  *
  * Los eventos del ciclo de vida y la gestión de peticiones se agregan en los
  * siguientes ejercicios; por ahora este archivo solo escribe en consola.

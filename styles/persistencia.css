@@ -109,6 +109,30 @@
 
 /* ── Vista /diagnostico ───────────────────────────────────────────────────── */
 
+/* La vista tiene dos grupos: Almacenamiento y Service Worker (serviceWorker.css). */
+.diag-grupo {
+  margin: 0 0 2.75rem;
+}
+
+.diag-grupo:last-child {
+  margin-bottom: 0;
+}
+
+.diag-grupo__titulo {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 0.4rem;
+}
+
+.diag-grupo__texto {
+  max-width: 62ch;
+  margin: 0 0 1.25rem;
+  font-size: 0.93rem;
+  color: var(--tinta-suave);
+}
+
 .diag-rejilla {
   display: grid;
   grid-template-columns: 1fr;

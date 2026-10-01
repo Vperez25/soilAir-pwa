@@ -4,7 +4,7 @@
  * Lectura del estado del Service Worker y verificador de scope.
  *
  * Aquí no hay HTML: solo se consulta al navegador y se devuelven objetos. La
- * vista (views/ServiceWorkerView.js) se encarga de pintarlos.
+ * panel (components/ServiceWorkerPanel.js) se encarga de pintarlos.
  */
 
 import { BASE_PATH } from '../config.js';

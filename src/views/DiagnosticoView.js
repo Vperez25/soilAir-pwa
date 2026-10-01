@@ -1,12 +1,15 @@
 /**
  * views/DiagnosticoView.js
  * -----------------------------------------------------------------------------
- * Ruta "/diagnostico" — qué guarda SoilAir en el navegador y dónde.
+ * Ruta "/diagnostico" — qué guarda SoilAir en el navegador y cómo está su
+ * Service Worker. Dos grupos:
  *
- * Es la vista de control de la capa de persistencia: enseña el valor REAL que
- * hay ahora mismo en cada uno de los tres mecanismos, si el navegador los
- * permite, cuánto vive cada dato y por qué está ahí y no en otro lado. Cada
- * mecanismo tiene su propio botón para vaciarlo sin tocar los otros dos.
+ *   1. Almacenamiento   el valor REAL que hay ahora mismo en cada uno de los tres
+ *                       mecanismos, si el navegador los permite, cuánto vive cada
+ *                       dato y por qué está ahí y no en otro lado. Cada mecanismo
+ *                       tiene su propio botón para vaciarlo sin tocar los otros dos.
+ *   2. Service Worker   estado, verificador de scope y experimentos. Lo pinta
+ *                       components/ServiceWorkerPanel.js.
  *
  * No lee los almacenes por su cuenta: los tres MECANISMOS de abajo delegan en
  * los mismos servicios que usa el resto de la app, así que lo que aparece en
@@ -25,6 +28,7 @@ import {
 } from '../services/visitasService.js';
 import { getCookie } from '../utils/cookies.js';
 import { escaparHtml } from '../utils/escapar.js';
+import { ServiceWorkerPanel } from '../components/ServiceWorkerPanel.js';
 
 const FECHA = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -139,7 +143,7 @@ function Tarjeta(mecanismo) {
   return `
     <article class="diag-tarjeta${activo ? '' : ' diag-tarjeta--inactiva'}">
       <header class="diag-tarjeta__encabezado">
-        <h2 class="diag-tarjeta__titulo">${escaparHtml(mecanismo.titulo)}</h2>
+        <h3 class="diag-tarjeta__titulo">${escaparHtml(mecanismo.titulo)}</h3>
         <span class="diag-tarjeta__estado">${activo ? 'disponible' : 'bloqueado'}</span>
       </header>
 
@@ -169,16 +173,33 @@ function Tarjeta(mecanismo) {
 export function DiagnosticoView() {
   return `
     <section class="portada">
-      <p class="portada__eyebrow">Persistencia en el cliente</p>
-      <h1 class="portada__titulo">Diagnóstico de almacenamiento</h1>
+      <p class="portada__eyebrow">Persistencia y Service Worker</p>
+      <h1 class="portada__titulo">Diagnóstico</h1>
       <p class="portada__texto">
-        Los tres mecanismos que usa SoilAir, con el valor que tienen en este
-        momento. Cada uno se limpia por separado: borrar el tema no toca el
-        filtro, y borrar la cookie no toca ninguno de los dos.
+        Lo que SoilAir guarda en este navegador y el estado de su Service
+        Worker, con los valores que tienen en este momento.
       </p>
     </section>
 
-    <div id="diag-panel" class="diag-rejilla"></div>
+    <section class="diag-grupo" aria-labelledby="diag-g-almacenamiento">
+      <h2 id="diag-g-almacenamiento" class="diag-grupo__titulo">Almacenamiento</h2>
+      <p class="diag-grupo__texto">
+        Los tres mecanismos que usa SoilAir. Cada uno se limpia por separado:
+        borrar el tema no toca el filtro, y borrar la cookie no toca ninguno de
+        los dos.
+      </p>
+      <div id="diag-panel" class="diag-rejilla"></div>
+    </section>
+
+    <section class="diag-grupo" aria-labelledby="diag-g-sw">
+      <h2 id="diag-g-sw" class="diag-grupo__titulo">Service Worker</h2>
+      <p class="diag-grupo__texto">
+        Si está registrado, hasta dónde llega su scope y si ya controla esta
+        página. Los mensajes de <code>sw.js</code> no salen aquí: se ven en la
+        consola del worker, desde DevTools → Application → Service Workers.
+      </p>
+      ${ServiceWorkerPanel()}
+    </section>
   `;
 }
 
@@ -187,9 +208,9 @@ export function DiagnosticoView() {
  * hay que repintarlo en tres momentos distintos: al entrar, al pulsar un botón
  * de limpiar y cuando OTRA pestaña cambia el tema.
  *
- * @param {{contenedor: HTMLElement}} contexto
+ * @param {{contenedor: HTMLElement, vigente: () => boolean}} contexto
  */
-DiagnosticoView.montar = ({ contenedor }) => {
+DiagnosticoView.montar = async ({ contenedor, vigente }) => {
   const panel = contenedor.querySelector('#diag-panel');
   if (!panel) return;
 
@@ -222,7 +243,11 @@ DiagnosticoView.montar = ({ contenedor }) => {
 
   window.addEventListener('storage', alCambiarOtraPestana);
 
+  // Las tarjetas de almacenamiento se pintan primero: son síncronas y no tienen
+  // por qué esperar a que el navegador conteste lo del Service Worker.
   pintar();
+
+  await ServiceWorkerPanel.montar({ contenedor, vigente });
 };
 
 /** Reexportado por si otra vista necesita vaciar una clave suelta. */

@@ -1,7 +1,8 @@
 /**
- * views/ServiceWorkerView.js
+ * components/ServiceWorkerPanel.js
  * -----------------------------------------------------------------------------
- * Ruta "/service-worker" — estado del Service Worker dentro de la propia app.
+ * Panel del Service Worker dentro de la vista /diagnostico
+ * (views/DiagnosticoView.js lo monta debajo de las tarjetas de almacenamiento).
  *
  * Cuatro bloques:
  *   1. Estado          lo que dice el navegador sobre el registro y el control.
@@ -9,9 +10,13 @@
  *   3. Scope inválido  experimento que provoca el error a propósito.
  *   4. Reto            un segundo registro con scope más estrecho.
  *
- * La vista no llama a navigator.serviceWorker.register(): eso vive en
+ * El panel no llama a navigator.serviceWorker.register(): eso vive en
  * pwa/registerSW.js. Tampoco consulta el estado por su cuenta: usa
  * pwa/swDiagnostico.js. Aquí solo se decide qué HTML corresponde a cada dato.
+ *
+ * Es un componente y no una vista: no conoce la ruta, no pinta título de página
+ * y se usa igual que MedidorRango o CultivoCard — se llama para obtener el
+ * marcado y luego se le pide .montar() cuando ya está en el DOM.
  *
  * Todo se repinta desde pintarTodo(), que es lo que ejecuta el botón
  * "Actualizar estado": el estado de un worker cambia solo (instalando ->
@@ -193,34 +198,27 @@ function PanelRegistros(estado) {
   `;
 }
 
-/* ── Vista ────────────────────────────────────────────────────────────────── */
+/* ── Componente ───────────────────────────────────────────────────────────── */
 
-export function ServiceWorkerView() {
+/**
+ * Marcado del panel. Los títulos de bloque son h3 porque el título del grupo
+ * («Service Worker») lo pone quien lo usa, como h2.
+ */
+export function ServiceWorkerPanel() {
   const sinSoporte = soportaSW() ? '' : 'disabled';
 
   return `
-    <section class="portada">
-      <p class="portada__eyebrow">Aplicaciones web progresivas</p>
-      <h1 class="portada__titulo">Service Worker</h1>
-      <p class="portada__texto">
-        Qué sabe el navegador del Service Worker de SoilAir: si está registrado,
-        hasta dónde llega su scope y si ya controla esta página. Los mensajes de
-        <code>sw.js</code> no salen aquí: se ven en la consola del worker, desde
-        DevTools → Application → Service Workers.
-      </p>
-    </section>
-
     <div id="sw-vista" class="sw-vista">
       <section class="sw-seccion" aria-labelledby="sw-t-estado">
         <header class="sw-seccion__cabecera">
-          <h2 id="sw-t-estado" class="sw-seccion__titulo">Estado</h2>
+          <h3 id="sw-t-estado" class="sw-seccion__titulo">Estado</h3>
           <button type="button" class="clima-boton" data-accion="actualizar">Actualizar estado</button>
         </header>
         <div id="sw-estado" aria-live="polite"><p class="cargando">Consultando al navegador…</p></div>
       </section>
 
       <section class="sw-seccion" aria-labelledby="sw-t-scope">
-        <h2 id="sw-t-scope" class="sw-seccion__titulo">Verificador de scope</h2>
+        <h3 id="sw-t-scope" class="sw-seccion__titulo">Verificador de scope</h3>
         <p class="sw-seccion__texto">
           Un worker solo controla las URL cuyo texto <strong>empieza</strong> por su
           scope. La comparación es por prefijo, igual que la hace el navegador.
@@ -229,7 +227,7 @@ export function ServiceWorkerView() {
       </section>
 
       <section class="sw-seccion" aria-labelledby="sw-t-invalido">
-        <h2 id="sw-t-invalido" class="sw-seccion__titulo">Scope inválido a propósito</h2>
+        <h3 id="sw-t-invalido" class="sw-seccion__titulo">Scope inválido a propósito</h3>
         <p class="sw-seccion__texto">
           Un script solo puede controlar su propia carpeta y las de abajo. Este
           experimento registra un script de <code>/src/pwa/</code> pidiendo el scope
@@ -244,7 +242,7 @@ export function ServiceWorkerView() {
       </section>
 
       <section class="sw-seccion" aria-labelledby="sw-t-reto">
-        <h2 id="sw-t-reto" class="sw-seccion__titulo">Reto: dos registros con el mismo sw.js</h2>
+        <h3 id="sw-t-reto" class="sw-seccion__titulo">Reto: dos registros con el mismo sw.js</h3>
         <p class="sw-seccion__texto">
           Registra <code>${escaparHtml(SW_URL)}</code> una segunda vez con un scope más
           estrecho, <code>${escaparHtml(SW_SCOPE_ESTRECHO)}</code>. Cuando varios registros
@@ -260,7 +258,7 @@ export function ServiceWorkerView() {
           </button>
         </div>
         <p id="sw-reto-mensaje" class="sw-mensaje" aria-live="polite"></p>
-        <h3 class="sw-subtitulo">Registros del dominio · getRegistrations()</h3>
+        <h4 class="sw-subtitulo">Registros del dominio · getRegistrations()</h4>
         <div id="sw-registros"></div>
       </section>
     </div>
@@ -268,11 +266,12 @@ export function ServiceWorkerView() {
 }
 
 /**
- * Gancho del router: se ejecuta con el HTML ya montado.
+ * Conecta el panel con el navegador una vez que su HTML ya está en el DOM.
  *
  * @param {{contenedor: HTMLElement, vigente: () => boolean}} contexto
+ *        los mismos dos datos que el router le pasa a cualquier vista
  */
-ServiceWorkerView.montar = async ({ contenedor, vigente }) => {
+ServiceWorkerPanel.montar = async ({ contenedor, vigente }) => {
   const vista = contenedor.querySelector('#sw-vista');
   const estadoCaja = contenedor.querySelector('#sw-estado');
   const verificador = contenedor.querySelector('#sw-verificador');
