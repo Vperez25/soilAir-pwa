@@ -1,12 +1,12 @@
 /* ── Encabezado ───────────────────────────────────────────────────────────── */
 
 /*
-  Mobile First. Con cinco secciones más el botón de tema ya no cabe todo en
+  Mobile First. Con seis secciones más el botón de tema ya no cabe todo en
   una línea de 360 px, así que en móvil el encabezado se parte en dos filas
-  (y la segunda puede envolverse si el ancho no alcanza):
+  (y la segunda se envuelve si el ancho no alcanza):
 
       [ SoilAir ................... ☀ Claro ]
-      [ Cultivos  Clima  Bitácora  Acerca  Diagnóstico ]
+      [ Cultivos  Clima  Bitácora  Acerca  Diagnóstico  Service Worker ]
 
   A partir de 620 px vuelve a ser una sola línea, con el botón al final. El
   reparto se hace con `order` y `flex-basis`, no duplicando el marcado.

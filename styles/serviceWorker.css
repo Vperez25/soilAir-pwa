@@ -1,0 +1,271 @@
+/* =============================================================================
+   Vista /service-worker · estado, verificador de scope y experimentos
+
+   Mobile First. Sin colores literales: todo sale de las variables de main.css
+   para que el tema oscuro funcione solo. Reutiliza .clima-boton (climaView.css).
+   ============================================================================= */
+
+.sw-vista {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* ── Bloque ───────────────────────────────────────────────────────────────── */
+
+.sw-seccion {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+  padding: 1.3rem 1.35rem 1.2rem;
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--verde);
+  border-radius: var(--radio);
+}
+
+.sw-seccion__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sw-seccion__titulo {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.sw-seccion__texto {
+  margin: 0;
+  font-size: 0.93rem;
+  color: var(--tinta-suave);
+}
+
+.sw-subtitulo {
+  margin: 0.4rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+}
+
+.sw-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.sw-seccion .clima-boton {
+  justify-self: start;
+}
+
+.sw-seccion .clima-boton[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Lista de estado (pregunta / respuesta) ───────────────────────────────── */
+
+.sw-filas {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.sw-fila {
+  display: grid;
+  gap: 0.2rem;
+}
+
+@media (min-width: 40rem) {
+  .sw-fila {
+    grid-template-columns: minmax(13rem, 17rem) 1fr;
+    gap: 1rem;
+  }
+}
+
+.sw-fila dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  padding-top: 0.2rem;
+}
+
+.sw-fila dd {
+  margin: 0;
+  font-size: 0.9rem;
+  /* Las URL no tienen dónde cortar: que rompan en vez de ensanchar el bloque. */
+  overflow-wrap: anywhere;
+}
+
+.sw-detalle {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--tinta-suave);
+}
+
+.sw-hora {
+  margin: 0;
+  font-family: var(--dato);
+  font-size: 0.72rem;
+  color: var(--tinta-suave);
+}
+
+.sw-scope {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.sw-scope small {
+  color: var(--tinta-suave);
+}
+
+.sw-vacio {
+  color: var(--tinta-suave);
+}
+
+.sw-vacio-bloque {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  font-size: 0.86rem;
+  color: var(--tinta-suave);
+  background: var(--nota);
+  border-radius: var(--radio);
+}
+
+/* Sí / No y Dentro / Fuera: el símbolo va en el texto, el color solo refuerza. */
+.sw-valor {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: var(--dato);
+  font-size: 0.78rem;
+  color: var(--tinta);
+  background: var(--codigo);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+}
+
+.sw-valor--si {
+  box-shadow: inset 0 0 0 1px var(--optimo);
+}
+
+.sw-valor--no {
+  box-shadow: inset 0 0 0 1px var(--critico-alto);
+}
+
+/* ── Tablas ───────────────────────────────────────────────────────────────── */
+
+/* Si no cabe, scrollea la tabla y no la página. */
+.sw-tabla-caja {
+  overflow-x: auto;
+}
+
+.sw-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.sw-tabla th,
+.sw-tabla td {
+  padding: 0.65rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--linea);
+}
+
+.sw-tabla thead th {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+}
+
+.sw-tabla tbody th {
+  font-weight: 600;
+}
+
+.sw-tabla code {
+  display: block;
+  margin-top: 0.25rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.sw-tabla td code {
+  margin-top: 0;
+}
+
+.sw-tabla tbody tr:last-child th,
+.sw-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ── Resultados de los experimentos ───────────────────────────────────────── */
+
+.sw-resultado:empty {
+  display: none;
+}
+
+.sw-error {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1.1rem 1.25rem;
+  background: var(--fondo);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--arcilla);
+  border-radius: var(--radio);
+}
+
+.sw-error__titulo {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--arcilla);
+}
+
+.sw-error__texto {
+  margin: 0;
+  font-family: var(--dato);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--tinta-suave);
+  overflow-wrap: anywhere;
+}
+
+/*
+  Región aria-live: se queda en el DOM aunque esté vacía (si no, el lector de
+  pantalla no anuncia lo que llegue después), solo sin relleno ni borde.
+*/
+.sw-mensaje {
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  background: var(--nota);
+  border-left: 3px solid var(--verde);
+  border-radius: var(--radio);
+  overflow-wrap: anywhere;
+}
+
+.sw-mensaje--error {
+  border-left-color: var(--critico-alto);
+}
+
+.sw-mensaje:empty {
+  padding: 0;
+  border: 0;
+}
