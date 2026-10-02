@@ -25,9 +25,9 @@
  * cuatro funciones exportadas de abajo.
  */
 
-// Es el único import de red del proyecto. Se fija la versión mayor (@8) para que
-// una 9.x con cambios incompatibles no rompa la app sin avisar.
-import { openDB } from 'https://cdn.jsdelivr.net/npm/idb@8/+esm';
+// Copia local de idb 8.0.3 (ver el encabezado de vendor/idb.js). No se importa del
+// CDN para que el App Shell que precachea sw.js sea autosuficiente.
+import { openDB } from '../vendor/idb.js';
 
 /** Nombre de la base de datos. */
 const DB_NOMBRE = 'soilair';
