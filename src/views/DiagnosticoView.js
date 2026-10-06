@@ -29,6 +29,7 @@ import {
 import { getCookie } from '../utils/cookies.js';
 import { escaparHtml } from '../utils/escapar.js';
 import { ServiceWorkerPanel } from '../components/ServiceWorkerPanel.js';
+import { CachePanel } from '../components/CachePanel.js';
 
 const FECHA = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -200,6 +201,14 @@ export function DiagnosticoView() {
       </p>
       ${ServiceWorkerPanel()}
     </section>
+
+    <section class="diag-grupo" aria-labelledby="diag-g-cache">
+      <h2 id="diag-g-cache" class="diag-grupo__titulo">Caché</h2>
+      <p class="diag-grupo__texto">
+        Qué atiende el Service Worker y qué hay guardado en la Cache API.
+      </p>
+      ${CachePanel()}
+    </section>
   `;
 }
 
@@ -247,7 +256,10 @@ DiagnosticoView.montar = async ({ contenedor, vigente }) => {
   // por qué esperar a que el navegador conteste lo del Service Worker.
   pintar();
 
-  await ServiceWorkerPanel.montar({ contenedor, vigente });
+  await Promise.all([
+    ServiceWorkerPanel.montar({ contenedor, vigente }),
+    CachePanel.montar({ contenedor, vigente }),
+  ]);
 };
 
 /** Reexportado por si otra vista necesita vaciar una clave suelta. */

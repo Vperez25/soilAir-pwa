@@ -21,6 +21,7 @@ import { montarSelectorTema } from './components/SelectorTema.js';
 import { iniciarTema } from './services/temaService.js';
 import { registrarVisita } from './services/visitasService.js';
 import { registrarSW } from './pwa/registerSW.js';
+import { iniciarRegistroFetch } from './pwa/fetchLog.js';
 import { HomeView } from './views/HomeView.js';
 import { AboutView } from './views/AboutView.js';
 import { ClimaView } from './views/ClimaView.js';
@@ -50,6 +51,11 @@ montarSelectorTema();
 // Cookie de registro: suma una visita y renueva su caducidad de 30 días.
 // Si el navegador no acepta cookies devuelve null y no pasa nada más.
 registrarVisita();
+
+// Empieza a recoger lo que el Service Worker informa de cada petición (HIT / MISS)
+// para mostrarlo en /diagnostico. Va antes que el router: así no se pierden las
+// peticiones del arranque.
+iniciarRegistroFetch();
 
 const router = new Router(rutas, {
   contenedor: document.querySelector('#app'),

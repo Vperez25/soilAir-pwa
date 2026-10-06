@@ -8,6 +8,9 @@
 
 .sw-vista {
   display: grid;
+  /* minmax(0, 1fr) y no "auto": una columna auto se ensancha hasta el contenido
+     más ancho (una tabla con celdas que no se parten) y desborda la pantalla. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
 }
 
@@ -15,6 +18,7 @@
 
 .sw-seccion {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.9rem;
   align-content: start;
   padding: 1.3rem 1.35rem 1.2rem;
@@ -53,6 +57,14 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tinta-suave);
+}
+
+.sw-subtitulo code {
+  /* Un nombre de caché distingue mayúsculas: se muestra tal cual, no en versalitas. */
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+  color: var(--tinta);
 }
 
 .sw-botones {
@@ -269,4 +281,83 @@
 .sw-mensaje:empty {
   padding: 0;
   border: 0;
+}
+
+/* ── Panel de caché (components/CachePanel.js) ────────────────────────────── */
+
+/* Una caché del shell tiene ~45 entradas: la tabla scrollea por dentro. */
+.cache-caja {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.cache-hora {
+  white-space: nowrap;
+  font-family: var(--dato);
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+
+/* Cabecera de la columna de botones: sin texto visible, pero con nombre para el
+   lector de pantalla. */
+.cache-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sw-tabla .clima-boton[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*
+  Registro de peticiones. Es una lista y no una tabla: con tres columnas, a 360 px
+  la ruta se partía letra por letra y la etiqueta HIT/MISS quedaba cortada.
+  En móvil la ruta ocupa su propia línea; desde 40rem todo va en una sola fila.
+*/
+.cache-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cache-log__fila {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'hora origen'
+    'peticion peticion';
+  gap: 0.3rem 0.8rem;
+  align-items: center;
+  padding: 0.6rem 0.25rem;
+  border-bottom: 1px solid var(--linea);
+}
+
+.cache-log__fila:last-child {
+  border-bottom: 0;
+}
+
+.cache-log__fila .cache-hora {
+  grid-area: hora;
+}
+
+.cache-log__peticion {
+  grid-area: peticion;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.cache-log__origen {
+  grid-area: origen;
+}
+
+@media (min-width: 40rem) {
+  .cache-log__fila {
+    grid-template-columns: 7rem 1fr auto;
+    grid-template-areas: 'hora peticion origen';
+  }
 }
