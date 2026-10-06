@@ -52,7 +52,7 @@ const CACHE_PREFIJO = 'soilair-app-shell-';
  * navegador instala un worker nuevo, que crea una caché con el nombre nuevo, y
  * cuando toma el control borra la anterior.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v1`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v2`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
