@@ -73,7 +73,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v6`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v7`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -150,8 +150,17 @@ const APP_SHELL = [
   "./src/views/HomeView.js",
   "./src/views/NotFoundView.js",
 
-  // Icono del encabezado
-  "./images/favicon.png",
+  // Web App Manifest y sus íconos. Sin ellos en la caché, una recarga sin
+  // conexión pierde el manifest: la pestaña se queda sin favicon y DevTools ->
+  // Application -> Manifest no puede mostrar los íconos.
+  "./manifest.json",
+  "./images/icons/icon-192.png",
+  "./images/icons/icon-512.png",
+  "./images/icons/icon-maskable-512.png",
+
+  // Íconos que enlaza el HTML: favicon y apple-touch-icon (iOS)
+  "./images/icons/favicon-32.png",
+  "./images/icons/apple-touch-icon.png",
 ];
 
 /* ── install: precachear el App Shell ─────────────────────────────────────── */

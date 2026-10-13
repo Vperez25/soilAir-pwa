@@ -15,7 +15,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SoilAir</title>
-    <link rel="icon" type="image/png" href="images/favicon.png" />
 
     <!--
       Raíz del sitio. Tiene que ir ANTES de las hojas de estilo y del módulo,
@@ -37,6 +36,46 @@
         document.head.appendChild(etiqueta);
       })();
     </script>
+
+    <!--
+      Web App Manifest, color de la interfaz e íconos.
+
+      Van DESPUÉS del <base> por lo mismo que las hojas de estilo: son rutas
+      relativas, y en un enlace directo a /cultivo/maiz se buscarían en
+      .../cultivo/manifest.json.
+
+      theme-color es el color del encabezado: la .topbar se pinta con --velo, que
+      es --fondo (styles/main.css) al 92 %, y sobre el fondo de la página se ve
+      exactamente como --fondo. Es el mismo valor que theme_color en
+      manifest.json. Aquí va el del tema claro; src/services/temaService.js lo
+      cambia cuando el tema es el oscuro.
+    -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#f2e9e1" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="images/icons/favicon-32.png"
+    />
+
+    <!--
+      iOS no lee los íconos ni el nombre corto del manifest: necesita sus propias
+      etiquetas. El ícono va sin transparencia (iOS la pinta de negro) y la
+      pantalla de inicio solo se usa si la media query coincide EXACTAMENTE con
+      el dispositivo; esta es la de 390 × 844 pt a 3x (iPhone 12, 13 y 14).
+    -->
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="images/icons/apple-touch-icon.png"
+    />
+    <meta name="apple-mobile-web-app-title" content="SoilAir" />
+    <link
+      rel="apple-touch-startup-image"
+      href="images/splash/apple-splash-1170x2532.png"
+      media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
 
     <!--
       Tema guardado (localStorage), aplicado ANTES de pintar.

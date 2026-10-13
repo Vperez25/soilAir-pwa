@@ -72,6 +72,15 @@ export function aplicarTema(tema, { persistir = true } = {}) {
 
   document.documentElement.dataset.tema = elegido;
 
+  // La barra del navegador (y la ventana de la app instalada) sigue al tema.
+  // El color se lee de --fondo, la misma variable que pinta el encabezado, en
+  // vez de repetirlo aquí. Si main.css no cargó la variable viene vacía y se
+  // deja el valor que trae index.html.
+  const colorBarra = getComputedStyle(document.documentElement).getPropertyValue('--fondo').trim();
+  if (colorBarra) {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colorBarra);
+  }
+
   // Si localStorage falla, guardar() ya avisó al usuario y devolvió false.
   // La app no hace nada más: el tema queda aplicado hasta recargar.
   if (persistir) guardar(LOCAL, CLAVES.tema, elegido);
