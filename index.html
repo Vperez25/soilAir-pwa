@@ -116,6 +116,7 @@
     <link rel="stylesheet" href="styles/persistencia.css" />
     <link rel="stylesheet" href="styles/bitacora.css" />
     <link rel="stylesheet" href="styles/serviceWorker.css" />
+    <link rel="stylesheet" href="styles/instalacion.css" />
   </head>
   <body>
     <header class="topbar">
@@ -145,6 +146,10 @@
       >
         <span class="tema__icono" aria-hidden="true">☀</span>
         <span class="tema__texto">Claro</span>
+      </button>
+
+      <button type="button" id="boton-instalar" class="instalar" hidden>
+        Instalar app
       </button>
     </header>
 
@@ -187,6 +192,8 @@
         Unidad 2, Ejercicio 3 · Persistencia en el cliente (localStorage,
         sessionStorage y cookies)
       </p>
+
+      <p id="ayuda-instalar" class="instalar-ayuda" role="status" hidden></p>
     </footer>
 
     <script type="module" src="src/main.js"></script>

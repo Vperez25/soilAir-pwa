@@ -1,0 +1,25 @@
+.instalar {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--verde);
+  border-radius: var(--radio);
+  background: var(--verde);
+  color: #fff;
+  cursor: pointer;
+}
+.instalar:hover {
+  filter: brightness(0.92);
+}
+.instalar[hidden] {
+  display: none;
+}
+
+.instalar-ayuda {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--tinta-suave);
+}
+.instalar-ayuda[hidden] {
+  display: none;
+}

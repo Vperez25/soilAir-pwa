@@ -15,28 +15,34 @@
  *   4. registrarSW()      en el evento `load`, ya con la página cargada.
  */
 
-import { Router } from './router/router.js';
-import { montarNavbar, marcarActivo } from './components/Navbar.js';
-import { montarSelectorTema } from './components/SelectorTema.js';
-import { iniciarTema } from './services/temaService.js';
-import { registrarVisita } from './services/visitasService.js';
-import { registrarSW } from './pwa/registerSW.js';
-import { iniciarRegistroFetch } from './pwa/fetchLog.js';
-import { HomeView } from './views/HomeView.js';
-import { AboutView } from './views/AboutView.js';
-import { ClimaView } from './views/ClimaView.js';
-import { BitacoraView } from './views/BitacoraView.js';
-import { CultivoDetailView } from './views/CultivoDetailView.js';
-import { DiagnosticoView } from './views/DiagnosticoView.js';
-import { NotFoundView } from './views/NotFoundView.js';
+import { Router } from "./router/router.js";
+import { montarNavbar, marcarActivo } from "./components/Navbar.js";
+import { montarSelectorTema } from "./components/SelectorTema.js";
+import { iniciarTema } from "./services/temaService.js";
+import { registrarVisita } from "./services/visitasService.js";
+import { registrarSW } from "./pwa/registerSW.js";
+import { iniciarRegistroFetch } from "./pwa/fetchLog.js";
+import { HomeView } from "./views/HomeView.js";
+import { AboutView } from "./views/AboutView.js";
+import { ClimaView } from "./views/ClimaView.js";
+import { BitacoraView } from "./views/BitacoraView.js";
+import { CultivoDetailView } from "./views/CultivoDetailView.js";
+import { DiagnosticoView } from "./views/DiagnosticoView.js";
+import { NotFoundView } from "./views/NotFoundView.js";
+import { iniciarInstalacion } from "./pwa/instalacion.js";
+import { montarBotonInstalar } from "./components/BotonInstalar.js";
 
 const rutas = [
-  { path: '/', view: HomeView, titulo: 'Catálogo de cultivos' },
-  { path: '/clima', view: ClimaView, titulo: 'Condiciones en campo' },
-  { path: '/bitacora', view: BitacoraView, titulo: 'Bitácora de campo' },
-  { path: '/acerca', view: AboutView, titulo: 'Acerca' },
-  { path: '/diagnostico', view: DiagnosticoView, titulo: 'Diagnóstico' },
-  { path: '/cultivo/:id', view: CultivoDetailView, titulo: 'Ficha del cultivo' },
+  { path: "/", view: HomeView, titulo: "Catálogo de cultivos" },
+  { path: "/clima", view: ClimaView, titulo: "Condiciones en campo" },
+  { path: "/bitacora", view: BitacoraView, titulo: "Bitácora de campo" },
+  { path: "/acerca", view: AboutView, titulo: "Acerca" },
+  { path: "/diagnostico", view: DiagnosticoView, titulo: "Diagnóstico" },
+  {
+    path: "/cultivo/:id",
+    view: CultivoDetailView,
+    titulo: "Ficha del cultivo",
+  },
 ];
 
 // Tema guardado en localStorage + sincronización con las otras pestañas.
@@ -57,8 +63,11 @@ registrarVisita();
 // peticiones del arranque.
 iniciarRegistroFetch();
 
+iniciarInstalacion(); // lo primero que se ejecuta, antes de cualquier await
+montarBotonInstalar(); // después de que exista el DOM del Shell (el script es type="module", ya existe)
+
 const router = new Router(rutas, {
-  contenedor: document.querySelector('#app'),
+  contenedor: document.querySelector("#app"),
   noEncontrada: NotFoundView,
   // Cada vez que se monta una vista, el navbar subraya la sección activa.
   alRenderizar: marcarActivo,
@@ -70,4 +79,4 @@ router.iniciar();
 // cargaron, para que el registro no compita con ellos. Va aquí, en el punto de
 // entrada, y no dentro de una vista: una vista se monta cada vez que se navega
 // y registraría el worker una y otra vez.
-window.addEventListener('load', registrarSW);
+window.addEventListener("load", registrarSW);
