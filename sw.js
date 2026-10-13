@@ -73,7 +73,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v8`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v10`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
