@@ -73,7 +73,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v7`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v9`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -161,6 +161,10 @@ const APP_SHELL = [
   // Íconos que enlaza el HTML: favicon y apple-touch-icon (iOS)
   "./images/icons/favicon-32.png",
   "./images/icons/apple-touch-icon.png",
+
+  // Capturas de pantalla que enlaza el manifest.
+  "./images/capturas/escritorio-1280x720.png",
+  "./images/capturas/movil-540x720.png",
 ];
 
 /* ── install: precachear el App Shell ─────────────────────────────────────── */
