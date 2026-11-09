@@ -133,4 +133,49 @@ export class ApiService {
   }
 }
 
+/**
+ * POST con cuerpo JSON a una URL completa. Lo usa la cola de envíos
+ * (services/outboxService.js) cuando el envío se hace desde la página: en el
+ * plan B y con el botón "Reintentar ahora". En modo Background Sync el envío lo
+ * hace sw.js con su propio fetch(), porque el worker no puede importar módulos.
+ *
+ * A diferencia de get(), NO reintenta por su cuenta: cuándo volver a intentar
+ * lo decide la cola, y repetir un POST a ciegas podría duplicar el registro.
+ *
+ * @param {string} url
+ * @param {any} cuerpo se envía con JSON.stringify()
+ * @param {{timeout?: number}} [opciones] milisegundos antes de abortar
+ * @returns {Promise<{estado: number, datos: any}>} estado HTTP y JSON recibido
+ *          (null si la respuesta no traía JSON)
+ * @throws {ApiError} sin conexión, tiempo agotado o respuesta que no es 2xx
+ */
+export async function postJson(url, cuerpo, { timeout = 10000 } = {}) {
+  const control = new AbortController();
+  const reloj = setTimeout(() => control.abort(), timeout);
+
+  let respuesta;
+  try {
+    respuesta = await fetch(url, {
+      method: "POST",
+      signal: control.signal,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new ApiError("el servidor tardó demasiado en responder", undefined, "timeout", "AbortError");
+    }
+    throw new ApiError("sin conexión con el servidor", undefined, "network", error.name);
+  } finally {
+    clearTimeout(reloj);
+  }
+
+  if (!respuesta.ok) {
+    throw new ApiError(`el servidor respondió ${respuesta.status}`, respuesta.status, "http");
+  }
+
+  const datos = await respuesta.json().catch(() => null);
+  return { estado: respuesta.status, datos };
+}
+
 export default ApiService;

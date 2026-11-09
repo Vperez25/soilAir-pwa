@@ -3,31 +3,32 @@
  * -----------------------------------------------------------------------------
  * Ruta "/bitacora" — notas de campo por cultivo, guardadas en IndexedDB.
  *
- * Es la contraparte visible de services/dbService.js. La vista no sabe nada de
- * IndexedDB: solo llama a las cuatro funciones del servicio y decide qué HTML
- * corresponde a cada resultado.
+ * Es la contraparte visible de services/dbService.js y services/outboxService.js.
+ * La vista no sabe nada de IndexedDB ni de Background Sync: solo llama a los
+ * servicios y decide qué HTML corresponde a cada resultado.
  *
- *   - Formulario  -> crearEntrada()
+ *   - Formulario  -> registrarEntrada()  (guarda en la cola y LUEGO pide enviar)
  *   - Listado     -> leerEntradas()  /  leerEntradasDeCultivo() cuando hay filtro
- *   - Eliminar    -> eliminarEntrada()
+ *   - Eliminar    -> eliminarEntrada()   (también la saca de la cola)
+ *   - Envíos      -> components/PanelEnvios.js
  *
  * Los datos sobreviven a un F5 porque viven en IndexedDB, no en la página: al
- * montar la vista se vuelven a leer de la base.
+ * montar la vista se vuelven a leer de la base. Cada entrada lleva una insignia
+ * con su estado de envío: pendiente, enviada (con el id del servidor) o, si se
+ * guardó antes de que existiera la cola, solo en este dispositivo.
  *
  * ERRORES
  * Cada escritura (guardar y eliminar) va en try/catch y, si falla, el usuario lo
  * ve en pantalla. Al fallar guardar NO se vacía el formulario: lo escrito sigue
- * ahí para reintentar sin teclear la nota otra vez.
+ * ahí para reintentar sin teclear la nota otra vez. Un fallo de RED no es un
+ * error al guardar: la entrada ya quedó en la cola y se enviará después.
  */
 
-import {
-  crearEntrada,
-  leerEntradas,
-  leerEntradasDeCultivo,
-  eliminarEntrada,
-} from '../services/dbService.js';
+import { leerEntradas, leerEntradasDeCultivo } from '../services/dbService.js';
+import { registrarEntrada, eliminarEntrada, alCambiarCola } from '../services/outboxService.js';
 import { CULTIVOS } from '../services/cultivosIndex.js';
 import { avisar } from '../components/Aviso.js';
+import { PanelEnvios, montarPanelEnvios } from '../components/PanelEnvios.js';
 import { slugify } from '../utils/slugify.js';
 import { escaparHtml } from '../utils/escapar.js';
 
@@ -72,6 +73,12 @@ function explicar(error) {
   return cuotaLlena
     ? 'El almacenamiento del navegador está lleno. Libera espacio e inténtalo de nuevo.'
     : 'El navegador no dejó usar la base de datos local; puede estar bloqueada o ser una ventana privada. Inténtalo de nuevo.';
+}
+
+/** Corta un texto largo para mostrarlo en una sola línea. */
+function recortar(texto, maximo) {
+  const limpio = String(texto).replace(/\s+/g, ' ').trim();
+  return limpio.length > maximo ? `${limpio.slice(0, maximo - 1)}…` : limpio;
 }
 
 /** "1 entrada" / "3 entradas". */
@@ -133,15 +140,33 @@ function Formulario() {
   `;
 }
 
+/**
+ * Insignia con el estado de envío de una entrada. Las entradas de la v1 de la
+ * base no tienen `envio`: se guardaron antes de que existiera la cola.
+ */
+function EstadoEnvio(envio) {
+  if (envio?.estado === 'pendiente') {
+    return '<span class="envio-insignia envio-insignia--pendiente">Pendiente de envío</span>';
+  }
+
+  if (envio?.estado === 'enviada') {
+    const id = envio.idServidor ?? '—';
+    return `<span class="envio-insignia envio-insignia--enviada">Enviada · id servidor ${escaparHtml(id)}</span>`;
+  }
+
+  return '<span class="envio-insignia">Solo en este dispositivo</span>';
+}
+
 function Entrada(entrada) {
   const cultivo = nombreCultivo(entrada.cultivo);
   const cuando = fecha(entrada.fecha);
 
   return `
-    <li class="bitacora-entrada">
+    <li class="bitacora-entrada bitacora-entrada--${escaparHtml(entrada.envio?.estado ?? 'local')}">
       <div class="bitacora-entrada__meta">
         <span class="bitacora-entrada__cultivo">${escaparHtml(cultivo)}</span>
         <span class="bitacora-etiqueta">${escaparHtml(TIPOS[entrada.tipo] ?? entrada.tipo)}</span>
+        ${EstadoEnvio(entrada.envio)}
         <time class="bitacora-entrada__fecha" datetime="${escaparHtml(entrada.fecha)}">
           ${escaparHtml(cuando)}
         </time>
@@ -196,14 +221,17 @@ function ErrorLectura(error) {
 export function BitacoraView() {
   return `
     <section class="portada">
-      <p class="portada__eyebrow">Guardado en este dispositivo · IndexedDB</p>
+      <p class="portada__eyebrow">IndexedDB · cola de envío sin conexión</p>
       <h1 class="portada__titulo">Bitácora de campo</h1>
       <p class="portada__texto">
         Anota lo que se hizo o se observó en cada cultivo: un riego, una
-        fertilización, una plaga. Las entradas se quedan en este navegador y
-        siguen ahí después de recargar la página.
+        fertilización, una plaga. Cada entrada se guarda primero en este
+        navegador y después se envía al servidor; si no hay conexión, espera en
+        la cola y se manda en cuanto vuelva la red.
       </p>
     </section>
+
+    ${PanelEnvios()}
 
     ${Formulario()}
 
@@ -302,7 +330,9 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
     boton.disabled = true;
 
     try {
-      await crearEntrada({ cultivo, tipo, nota });
+      // Resuelve en cuanto la entrada está en IndexedDB (entrada + cola). El
+      // envío sigue por su cuenta y su resultado lo muestra el panel.
+      await registrarEntrada({ cultivo, tipo, nota });
     } catch (error) {
       // El formulario NO se vacía: el usuario conserva lo que escribió.
       decir(`No se pudo guardar la entrada. ${explicar(error)}`, 'error');
@@ -317,7 +347,7 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
     // fuera de la lista y parecería que no se guardó.
     if (filtro.value && filtro.value !== cultivo) filtro.value = '';
 
-    decir(`Entrada guardada en ${nombreCultivo(cultivo)}.`);
+    decir(`Entrada de ${nombreCultivo(cultivo)} guardada y puesta en la cola de envío.`);
     await pintar();
   });
 
@@ -353,5 +383,26 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
     await pintar();
   });
 
-  await pintar();
+  /* Envíos ----------------------------------------------------------------- */
+
+  // Cada cambio de la cola (envío confirmado, fallido, entrada nueva desde otra
+  // pestaña) cambia las insignias de la lista: se vuelve a leer.
+  const dejar = alCambiarCola(() => {
+    if (!vigente()) {
+      dejar();
+      return;
+    }
+    pintar();
+  });
+
+  await Promise.all([
+    pintar(),
+    montarPanelEnvios(contenedor, {
+      vigente,
+      describir: (pendiente) => ({
+        titulo: `${nombreCultivo(pendiente.cuerpo?.cultivo)} · ${TIPOS[pendiente.cuerpo?.tipo] ?? pendiente.cuerpo?.tipo ?? ''}`,
+        detalle: recortar(pendiente.cuerpo?.nota ?? '', 90),
+      }),
+    }),
+  ]);
 };

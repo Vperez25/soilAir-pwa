@@ -31,6 +31,7 @@ import { DiagnosticoView } from "./views/DiagnosticoView.js";
 import { NotFoundView } from "./views/NotFoundView.js";
 import { iniciarInstalacion } from "./pwa/instalacion.js";
 import { montarBotonInstalar } from "./components/BotonInstalar.js";
+import { iniciarEnvios } from "./services/outboxService.js";
 
 const rutas = [
   { path: "/", view: HomeView, titulo: "Catálogo de cultivos" },
@@ -65,6 +66,12 @@ iniciarRegistroFetch();
 
 iniciarInstalacion(); // lo primero que se ejecuta, antes de cualquier await
 montarBotonInstalar(); // después de que exista el DOM del Shell (el script es type="module", ya existe)
+
+// Cola de envíos de la bitácora: escucha al Service Worker, prepara el plan B
+// (evento online) y, si quedó algo pendiente de otra sesión, lo vuelve a pedir.
+// Va en el punto de entrada y no en la vista: "al abrir la app" tiene que pasar
+// aunque se entre por otra ruta que no sea /bitacora.
+iniciarEnvios();
 
 const router = new Router(rutas, {
   contenedor: document.querySelector("#app"),

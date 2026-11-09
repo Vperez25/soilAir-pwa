@@ -4,11 +4,13 @@
  * Service Worker de SoilAir — App Shell en caché VERSIONADA, servida desde caché,
  * con una estrategia distinta según el tipo de recurso.
  *
- * Hace tres cosas, cada una en su evento:
+ * Hace cuatro cosas, cada una en su evento:
  *
  *   install    abre la caché de ESTA versión y guarda en ella el App Shell.
  *   activate   borra las cachés de versiones anteriores.
  *   fetch      elige una estrategia según la petición y responde con ella.
+ *   sync       Background Sync: envía al servidor la cola de la bitácora
+ *              (store outbox de IndexedDB) cuando el navegador ve que hay red.
  *
  * Estrategias de fetch:
  *
@@ -73,7 +75,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v13`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v14`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -114,6 +116,7 @@ const APP_SHELL = [
   "./styles/bitacora.css",
   "./styles/serviceWorker.css",
   "./styles/instalacion.css",
+  "./styles/envios.css",
 
   // JS de arranque
   "./src/main.js",
@@ -132,7 +135,9 @@ const APP_SHELL = [
   "./src/components/SelectorTema.js",
   "./src/components/ServiceWorkerPanel.js",
   "./src/components/BotonInstalar.js",
+  "./src/components/PanelEnvios.js",
   "./src/services/apiService.js",
+  "./src/services/outboxService.js",
   "./src/services/climaService.js",
   "./src/services/cultivosIndex.js",
   "./src/services/cultivosService.js",
@@ -542,4 +547,269 @@ async function staleWhileRevalidate(event, request) {
   } catch {
     return sinConexion("Recurso no disponible.");
   }
+}
+
+/* ── Background Sync: cola de envíos de la bitácora ───────────────────────── */
+
+/**
+ * La página (src/services/outboxService.js) guarda cada entrada nueva en el
+ * store `outbox` de IndexedDB y DESPUÉS registra esta tag con
+ * registration.sync.register(). El navegador dispara aquí el evento `sync`
+ * cuando hay conexión: enseguida si ya la había, o en cuanto vuelva si no. No
+ * hace falta que la pestaña siga abierta.
+ *
+ * Reglas:
+ *   - Cada elemento se borra de la cola SOLO después de que el servidor
+ *     responda 2xx. Un error lo deja donde estaba, con un intento más.
+ *   - Si alguno falla, la promesa de waitUntil se RECHAZA: es la señal para que
+ *     el navegador programe otro intento (Chrome espera unos minutos y prueba
+ *     hasta 3 veces; en el último, event.lastChance es true).
+ *
+ * Las constantes repiten las de src/services/outboxService.js y
+ * src/services/dbService.js: un worker clásico no puede importar módulos ES.
+ * Si cambia una, hay que cambiarla en los dos lados.
+ */
+const TAG_SYNC = "soilair-sync-bitacora";
+const CANAL_OUTBOX = "soilair-outbox";
+const CANDADO_OUTBOX = "soilair-outbox";
+
+const DB_NOMBRE = "soilair";
+const DB_VERSION = 2;
+const STORE_BITACORA = "bitacora";
+const STORE_OUTBOX = "outbox";
+
+self.addEventListener("sync", (event) => {
+  console.log(
+    `[SW] sync: tag "${event.tag}"` +
+      (event.lastChance ? " (último intento del navegador)" : ""),
+  );
+
+  // Otra tag: no es de la bitácora, no se toca.
+  if (event.tag !== TAG_SYNC) return;
+
+  // Sin waitUntil el navegador daría el evento por terminado al instante y
+  // podría apagar el worker a mitad de los envíos.
+  event.waitUntil(enviarCola(event.lastChance));
+});
+
+/* ── IndexedDB sin librería ───────────────────────────────────────────────── */
+
+/** Convierte una petición de IndexedDB (eventos) en promesa. */
+function idbPromesa(peticion) {
+  return new Promise((resolver, rechazar) => {
+    peticion.onsuccess = () => resolver(peticion.result);
+    peticion.onerror = () => rechazar(peticion.error);
+  });
+}
+
+/** Se cumple cuando la transacción terminó de escribirse en disco. */
+function idbFin(tx) {
+  return new Promise((resolver, rechazar) => {
+    tx.oncomplete = () => resolver();
+    tx.onerror = () => rechazar(tx.error);
+    tx.onabort = () =>
+      rechazar(tx.error || new DOMException("Transacción abortada", "AbortError"));
+  });
+}
+
+/**
+ * Abre la base de la app con la MISMA versión y el MISMO upgrade que
+ * dbService.js. En la práctica la página siempre la crea antes (es quien
+ * registra el sync), pero si el worker la creara vacía, la página ya no podría
+ * agregar los stores: upgrade solo corre cuando la versión sube.
+ */
+function abrirBase() {
+  const peticion = indexedDB.open(DB_NOMBRE, DB_VERSION);
+
+  peticion.onupgradeneeded = (evento) => {
+    const db = peticion.result;
+
+    if (evento.oldVersion < 1) {
+      db.createObjectStore(STORE_BITACORA, { keyPath: "id", autoIncrement: true })
+        .createIndex("cultivo", "cultivo");
+    }
+
+    if (evento.oldVersion < 2) {
+      db.createObjectStore(STORE_OUTBOX, { keyPath: "id", autoIncrement: true })
+        .createIndex("entradaId", "entradaId");
+    }
+  };
+
+  return idbPromesa(peticion).then((db) => {
+    // Si una página pide una versión más nueva, se suelta la base.
+    db.onversionchange = () => db.close();
+    return db;
+  });
+}
+
+/** Todos los envíos pendientes, del más antiguo al más nuevo. */
+function leerCola(db) {
+  const tx = db.transaction(STORE_OUTBOX, "readonly");
+  return idbPromesa(tx.objectStore(STORE_OUTBOX).getAll());
+}
+
+/**
+ * Confirmado por el servidor: fuera de la cola y la entrada marcada como
+ * enviada, en una sola transacción. Hace lo mismo que confirmarEnvio() de
+ * dbService.js.
+ */
+async function confirmarEnCola(db, pendiente, idServidor) {
+  const tx = db.transaction([STORE_BITACORA, STORE_OUTBOX], "readwrite");
+  const terminado = idbFin(tx);
+
+  tx.objectStore(STORE_OUTBOX).delete(pendiente.id);
+
+  // Si el usuario borró la entrada mientras viajaba, no se vuelve a crear.
+  const entradas = tx.objectStore(STORE_BITACORA);
+  const entrada = await idbPromesa(entradas.get(pendiente.entradaId));
+  if (entrada) {
+    entradas.put({
+      ...entrada,
+      envio: { estado: "enviada", idServidor, enviadaEn: new Date().toISOString() },
+    });
+  }
+
+  return terminado;
+}
+
+/** Falló: sigue en la cola con un intento más. Igual que registrarFallo(). */
+async function registrarFalloEnCola(db, idPendiente, motivo) {
+  const tx = db.transaction(STORE_OUTBOX, "readwrite");
+  const terminado = idbFin(tx);
+  const store = tx.objectStore(STORE_OUTBOX);
+
+  const pendiente = await idbPromesa(store.get(idPendiente));
+  if (pendiente) {
+    store.put({
+      ...pendiente,
+      intentos: (pendiente.intentos ?? 0) + 1,
+      ultimoError: motivo,
+      ultimoIntento: new Date().toISOString(),
+    });
+  }
+
+  return terminado;
+}
+
+/* ── Envío ────────────────────────────────────────────────────────────────── */
+
+/**
+ * Manda UN elemento de la cola. Lanza si no hubo una respuesta 2xx: fetch() no
+ * lanza con un 404 o un 500, hay que revisar response.ok a mano.
+ *
+ * Esta petición la hace el propio worker, así que NO pasa por su evento fetch.
+ */
+async function enviarElemento(pendiente) {
+  let respuesta;
+
+  try {
+    respuesta = await fetch(pendiente.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(pendiente.cuerpo),
+      // Un servidor que nunca contesta no debe dejar el evento colgado.
+      signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined,
+    });
+  } catch (error) {
+    throw new Error(
+      error.name === "TimeoutError"
+        ? "el servidor tardó demasiado en responder"
+        : "sin conexión con el servidor",
+    );
+  }
+
+  if (!respuesta.ok) {
+    throw new Error(`el servidor respondió ${respuesta.status}`);
+  }
+
+  const datos = await respuesta.json().catch(() => null);
+  return { estado: respuesta.status, idServidor: datos?.id ?? null };
+}
+
+/** Avisa a las páginas abiertas (src/services/outboxService.js) del resultado. */
+function avisarPaginas(crudo) {
+  if (!("BroadcastChannel" in self)) return;
+
+  const canal = new BroadcastChannel(CANAL_OUTBOX);
+  canal.postMessage({ type: "OUTBOX_CAMBIO", crudo });
+  canal.close();
+}
+
+/**
+ * Recorre la cola y manda cada elemento. Corre con el mismo Web Lock que usa la
+ * página, para que un "Reintentar ahora" simultáneo no envíe dos veces lo mismo.
+ *
+ * @param {boolean} ultimaOportunidad event.lastChance
+ * @returns {Promise<void>} se RECHAZA si algún envío falló
+ */
+function enviarCola(ultimaOportunidad) {
+  const trabajo = async () => {
+    const db = await abrirBase();
+
+    try {
+      const pendientes = await leerCola(db);
+
+      if (!pendientes.length) {
+        console.log("[SW] sync: la cola está vacía, no hay nada que enviar");
+        avisarPaginas({ enviados: 0, fallidos: 0, origen: "service-worker" });
+        return;
+      }
+
+      console.log(
+        `[SW] sync: ${pendientes.length} envío(s) pendiente(s) en la cola (outbox)`,
+      );
+
+      let enviados = 0;
+      let fallidos = 0;
+      let ultimoError = "";
+
+      for (const pendiente of pendientes) {
+        try {
+          const { estado, idServidor } = await enviarElemento(pendiente);
+
+          // SOLO aquí, con la confirmación del servidor, sale de la cola.
+          await confirmarEnCola(db, pendiente, idServidor);
+          enviados++;
+          console.log(
+            `[SW] sync: entrada #${pendiente.entradaId} confirmada por el servidor ` +
+              `(HTTP ${estado}, id ${idServidor}); se borra de la cola`,
+          );
+        } catch (error) {
+          fallidos++;
+          ultimoError = error.message;
+          await registrarFalloEnCola(db, pendiente.id, error.message);
+          console.warn(
+            `[SW] sync: entrada #${pendiente.entradaId} NO se envió (${error.message}); sigue en la cola`,
+          );
+        }
+      }
+
+      avisarPaginas({
+        enviados,
+        fallidos,
+        ultimoError,
+        origen: "service-worker",
+        ultimaOportunidad,
+      });
+
+      if (fallidos) {
+        console.warn(
+          `[SW] sync: ${fallidos} pendiente(s); se rechaza waitUntil para que el navegador reintente` +
+            (ultimaOportunidad
+              ? ". Era el último intento: queda en la cola hasta el próximo sync.register"
+              : ""),
+        );
+        // Rechazar waitUntil = pedirle al navegador otro intento más tarde.
+        throw new Error(`${fallidos} envío(s) de la bitácora siguen pendientes`);
+      }
+
+      console.log(`[SW] sync: ${enviados} entrada(s) confirmadas; la cola quedó vacía`);
+    } finally {
+      db.close();
+    }
+  };
+
+  return self.navigator.locks
+    ? self.navigator.locks.request(CANDADO_OUTBOX, trabajo)
+    : trabajo();
 }

@@ -26,6 +26,19 @@ export const REPO = 'soilAir-pwa';
 export const URL_PAGES = `https://vperez25.github.io/${REPO}/`;
 
 /**
+ * Endpoint que recibe las entradas de la bitácora (POST, cuerpo JSON).
+ *
+ * SoilAir todavía no tiene backend propio, así que se usa JSONPlaceholder, una
+ * API pública de pruebas con CORS abierto: acepta el POST y responde
+ * 201 Created con el mismo objeto más un `id`, pero no guarda nada de verdad.
+ * Para conectar el servidor real basta con cambiar esta URL.
+ *
+ * Cada envío pendiente guarda la URL con la que se creó (store outbox), así que
+ * cambiarla aquí no redirige lo que ya estaba en la cola.
+ */
+export const API_BITACORA = 'https://jsonplaceholder.typicode.com/posts';
+
+/**
  * Prefijo que el navegador antepone a todas las rutas de la SPA.
  *
  *   GitHub Pages   https://vperez25.github.io/soilAir-pwa/clima  ->  '/soilAir-pwa'

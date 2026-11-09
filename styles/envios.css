@@ -1,0 +1,241 @@
+/* =============================================================================
+   Vista /bitacora · panel "Envío al servidor" e insignias de estado de envío
+
+   El panel dice en qué modo trabaja la cola (Background Sync o plan B), si hay
+   conexión, qué sigue pendiente y qué pasó con el último envío.
+
+   Sin colores literales: todo sale de las variables de main.css, así el tema
+   oscuro funciona solo. Reutiliza .clima-boton de climaView.css.
+   ============================================================================= */
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+
+.envios {
+  --acento: var(--verde);
+
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 1.15rem 1.35rem 1.1rem;
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--acento);
+  border-radius: var(--radio);
+}
+
+/* Plan B se distingue a simple vista: otro color de borde y de etiqueta. */
+.envios--plan-b {
+  --acento: var(--alerta);
+}
+
+.envios__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.envios__titulo {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.envios__modo {
+  justify-self: start;
+  margin: 0;
+  font-family: var(--dato);
+  font-size: 0.74rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tarjeta);
+  background: var(--acento);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+}
+
+.envios__explica {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--tinta-suave);
+}
+
+.envios__explica code {
+  font-family: var(--dato);
+  font-size: 0.82em;
+  background: var(--codigo);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+/* Indicador de conexión, a la derecha del título. */
+
+.envios__red {
+  font-family: var(--dato);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.envios__red::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.envios__red--si {
+  color: var(--optimo);
+}
+
+.envios__red--no {
+  color: var(--critico-alto);
+}
+
+/* Cola */
+
+.envios__estado {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.envios__estado .cargando {
+  margin: 0;
+}
+
+.envios__conteo {
+  margin: 0;
+  font-family: var(--dato);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--alerta);
+}
+
+.envios__conteo--vacia {
+  color: var(--optimo);
+}
+
+.envios__lista {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.envios__item {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--fondo);
+  border: 1px dashed var(--alerta);
+  border-radius: var(--radio);
+}
+
+.envios__item-titulo {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.envios__item-detalle {
+  font-size: 0.86rem;
+  color: var(--tinta-suave);
+  overflow-wrap: anywhere;
+}
+
+.envios__item-meta {
+  font-family: var(--dato);
+  font-size: 0.72rem;
+  color: var(--tinta-suave);
+}
+
+/* Pie: botón + resultado del último envío */
+
+.envios__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.envios .clima-boton {
+  border-color: var(--acento);
+}
+
+.envios .clima-boton[disabled] {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* Región aria-live: se queda en el DOM aunque esté vacía (ver bitacora.css). */
+.envios__resultado {
+  flex: 1 1 18rem;
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  background: var(--nota);
+  border-left: 3px solid var(--tinta-suave);
+  border-radius: var(--radio);
+}
+
+.envios__resultado--ok {
+  border-left-color: var(--optimo);
+}
+
+.envios__resultado--error {
+  border-left-color: var(--critico-alto);
+}
+
+.envios__resultado--info {
+  border-left-color: var(--alerta);
+}
+
+.envios__resultado:empty {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* ── Insignia de estado en cada entrada de la bitácora ────────────────────── */
+
+.envio-insignia {
+  font-family: var(--dato);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  padding: 0.12rem 0.6rem;
+}
+
+.envio-insignia--pendiente {
+  color: var(--alerta);
+  border-color: var(--alerta);
+  border-style: dashed;
+}
+
+.envio-insignia--enviada {
+  color: var(--optimo);
+  border-color: var(--optimo);
+}
+
+.bitacora-entrada--pendiente {
+  border-left-color: var(--alerta);
+}
+
+.bitacora-entrada--enviada {
+  border-left-color: var(--optimo);
+}
