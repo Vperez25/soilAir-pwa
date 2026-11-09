@@ -5,7 +5,7 @@
  *
  * ACCIÓN ELEGIDA: registrar una entrada de la bitácora de campo.
  *
- *   Datos     { idCliente, cultivo, tipo, nota, fecha }
+ *   Datos     { idCliente, cultivo, tipo, nota, fecha, ubicacion?, referencia? }
  *   Endpoint  POST API_BITACORA (src/config.js), cuerpo JSON
  *   Éxito     cualquier 2xx; JSONPlaceholder responde 201 Created con un `id`
  *
@@ -313,7 +313,8 @@ export async function solicitarEnvio(motivo) {
  * plano y su resultado llega por alCambiarCola(). Así el formulario no espera
  * a la red, y si la red no está, no pasa nada.
  *
- * @param {{cultivo: string, tipo: string, nota: string}} datos
+ * @param {{cultivo: string, tipo: string, nota: string,
+ *          ubicacion?: Object|null, referencia?: string}} datos
  * @returns {Promise<Object>} la entrada guardada
  * @throws si IndexedDB no pudo guardarla (en ese caso no se intenta enviar)
  */

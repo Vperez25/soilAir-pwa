@@ -11,6 +11,8 @@
  *   - Listado     -> leerEntradas()  /  leerEntradasDeCultivo() cuando hay filtro
  *   - Eliminar    -> eliminarEntrada()   (también la saca de la cola)
  *   - Envíos      -> components/PanelEnvios.js
+ *   - Ubicación   -> components/CampoUbicacion.js (usa services/ubicacionService.js)
+ *   - Compartir   -> services/compartirService.js (Web Share o portapapeles)
  *
  * Los datos sobreviven a un F5 porque viven en IndexedDB, no en la página: al
  * montar la vista se vuelven a leer de la base. Cada entrada lleva una insignia
@@ -29,6 +31,9 @@ import { registrarEntrada, eliminarEntrada, alCambiarCola } from '../services/ou
 import { CULTIVOS } from '../services/cultivosIndex.js';
 import { avisar } from '../components/Aviso.js';
 import { PanelEnvios, montarPanelEnvios } from '../components/PanelEnvios.js';
+import { CampoUbicacion, montarCampoUbicacion, MAX_REFERENCIA } from '../components/CampoUbicacion.js';
+import { coordenadas, enlaceMapa } from '../services/ubicacionService.js';
+import { compartir, soportaCompartir } from '../services/compartirService.js';
 import { slugify } from '../utils/slugify.js';
 import { escaparHtml } from '../utils/escapar.js';
 
@@ -130,6 +135,8 @@ function Formulario() {
             placeholder="Qué se hizo o qué se observó en la parcela"
           ></textarea>
         </label>
+
+        ${CampoUbicacion()}
       </div>
 
       <div class="bitacora-form__pie">
@@ -157,9 +164,76 @@ function EstadoEnvio(envio) {
   return '<span class="envio-insignia">Solo en este dispositivo</span>';
 }
 
+/** ¿La ubicación guardada tiene coordenadas utilizables? */
+function tieneUbicacion(entrada) {
+  return Number.isFinite(entrada.ubicacion?.lat) && Number.isFinite(entrada.ubicacion?.lon);
+}
+
+/** Línea "Lugar": referencia escrita y/o coordenadas con enlace al mapa. */
+function Lugar(entrada) {
+  const partes = [];
+
+  if (entrada.referencia) partes.push(escaparHtml(entrada.referencia));
+
+  if (tieneUbicacion(entrada)) {
+    const u = entrada.ubicacion;
+    partes.push(`
+      <span class="bitacora-entrada__coords">${escaparHtml(coordenadas(u))} · ±${escaparHtml(u.precision)} m</span>
+      <a href="${escaparHtml(enlaceMapa(u))}" target="_blank" rel="noopener">Ver en el mapa</a>
+    `);
+  }
+
+  if (!partes.length) return '';
+
+  return `
+    <p class="bitacora-entrada__lugar">
+      <span class="bitacora-entrada__lugar-etiqueta">Lugar</span>
+      ${partes.join(' · ')}
+    </p>
+  `;
+}
+
+/**
+ * Lo que se comparte de una entrada: un título, el texto (nota, fecha y lugar)
+ * y, si tiene coordenadas, el enlace al mapa como `url`.
+ */
+function datosParaCompartir(entrada) {
+  const lineas = [entrada.nota, `Fecha: ${fecha(entrada.fecha)}`];
+  if (entrada.referencia) lineas.push(`Lugar: ${entrada.referencia}`);
+  if (tieneUbicacion(entrada)) {
+    lineas.push(`Ubicación: ${coordenadas(entrada.ubicacion)} (±${entrada.ubicacion.precision} m)`);
+  }
+
+  const datos = {
+    title: `SoilAir · ${nombreCultivo(entrada.cultivo)} — ${TIPOS[entrada.tipo] ?? entrada.tipo}`,
+    text: lineas.join('\n'),
+  };
+  if (tieneUbicacion(entrada)) datos.url = enlaceMapa(entrada.ubicacion);
+
+  return datos;
+}
+
+/** Qué se le dice al usuario según cómo terminó el intento de compartir. */
+const RESULTADO_COMPARTIR = {
+  compartido: { tono: 'aviso', texto: 'Entrada compartida.' },
+  // AbortError: cerró el menú. No es un error.
+  cancelado: { tono: 'aviso', texto: 'Cancelaste el envío; no se compartió nada.' },
+  copiado: {
+    tono: 'aviso',
+    // Se copia también si hay menú pero no aceptó los datos (canShare) o falló.
+    get texto() {
+      return soportaCompartir()
+        ? 'No se pudo abrir el menú para compartir: el texto de la entrada se copió al portapapeles.'
+        : 'Este navegador no tiene menú para compartir: el texto de la entrada se copió al portapapeles. Pégalo en WhatsApp o en un correo.';
+    },
+  },
+};
+
 function Entrada(entrada) {
   const cultivo = nombreCultivo(entrada.cultivo);
   const cuando = fecha(entrada.fecha);
+  // Sin menú nativo el botón dice lo que de verdad va a pasar.
+  const etiquetaCompartir = soportaCompartir() ? 'Compartir' : 'Copiar para compartir';
 
   return `
     <li class="bitacora-entrada bitacora-entrada--${escaparHtml(entrada.envio?.estado ?? 'local')}">
@@ -174,14 +248,26 @@ function Entrada(entrada) {
 
       <p class="bitacora-entrada__nota">${escaparHtml(entrada.nota)}</p>
 
-      <button
-        type="button"
-        class="clima-boton"
-        data-eliminar="${escaparHtml(entrada.id)}"
-        aria-label="Eliminar la entrada de ${escaparHtml(cultivo)} del ${escaparHtml(cuando)}"
-      >
-        Eliminar
-      </button>
+      ${Lugar(entrada)}
+
+      <div class="bitacora-entrada__acciones">
+        <button
+          type="button"
+          class="clima-boton"
+          data-compartir="${escaparHtml(entrada.id)}"
+          aria-label="${escaparHtml(etiquetaCompartir)}: entrada de ${escaparHtml(cultivo)} del ${escaparHtml(cuando)}"
+        >
+          ${escaparHtml(etiquetaCompartir)}
+        </button>
+        <button
+          type="button"
+          class="clima-boton"
+          data-eliminar="${escaparHtml(entrada.id)}"
+          aria-label="Eliminar la entrada de ${escaparHtml(cultivo)} del ${escaparHtml(cuando)}"
+        >
+          Eliminar
+        </button>
+      </div>
     </li>
   `;
 }
@@ -221,13 +307,14 @@ function ErrorLectura(error) {
 export function BitacoraView() {
   return `
     <section class="portada">
-      <p class="portada__eyebrow">IndexedDB · cola de envío sin conexión</p>
+      <p class="portada__eyebrow">IndexedDB · cola sin conexión · ubicación · compartir</p>
       <h1 class="portada__titulo">Bitácora de campo</h1>
       <p class="portada__texto">
         Anota lo que se hizo o se observó en cada cultivo: un riego, una
-        fertilización, una plaga. Cada entrada se guarda primero en este
-        navegador y después se envía al servidor; si no hay conexión, espera en
-        la cola y se manda en cuanto vuelva la red.
+        fertilización, una plaga. Puedes marcar el punto de la parcela con tu
+        ubicación y compartir la entrada con el agrónomo. Cada entrada se guarda
+        primero en este navegador y después se envía al servidor; si no hay
+        conexión, espera en la cola y se manda en cuanto vuelva la red.
       </p>
     </section>
 
@@ -266,6 +353,11 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
   const lista = contenedor.querySelector('#bitacora-lista');
   if (!formulario || !mensaje || !filtro || !conteo || !lista) return;
 
+  const campoUbicacion = montarCampoUbicacion(contenedor, { vigente });
+
+  /** Entradas pintadas, por id: el botón Compartir toma de aquí sus datos. */
+  let visibles = new Map();
+
   // Cada consulta lleva un número. Si el usuario cambia el filtro dos veces
   // seguidas, la primera respuesta puede llegar DESPUÉS de la segunda; con el
   // número, solo pinta la última que se pidió.
@@ -294,6 +386,7 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
       conteo.textContent = cultivo
         ? `${contar(entradas.length)} · ${nombreCultivo(cultivo)}`
         : contar(entradas.length);
+      visibles = new Map(entradas.map((entrada) => [entrada.id, entrada]));
       lista.innerHTML = Lista(entradas, cultivo);
     } catch (error) {
       if (turno !== consulta || !vigente()) return;
@@ -313,6 +406,8 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
     const cultivo = String(datos.get('cultivo'));
     const tipo = String(datos.get('tipo'));
     const nota = String(datos.get('nota')).trim();
+    const referencia = String(datos.get('referencia') ?? '').trim().slice(0, MAX_REFERENCIA);
+    const ubicacion = campoUbicacion.leer();
 
     // `required` deja pasar una nota hecha solo de espacios.
     if (!nota) {
@@ -332,7 +427,7 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
     try {
       // Resuelve en cuanto la entrada está en IndexedDB (entrada + cola). El
       // envío sigue por su cuenta y su resultado lo muestra el panel.
-      await registrarEntrada({ cultivo, tipo, nota });
+      await registrarEntrada({ cultivo, tipo, nota, ubicacion, referencia });
     } catch (error) {
       // El formulario NO se vacía: el usuario conserva lo que escribió.
       decir(`No se pudo guardar la entrada. ${explicar(error)}`, 'error');
@@ -342,12 +437,15 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
     }
 
     formulario.reset();
+    campoUbicacion.limpiar();
 
     // Con un filtro activo de otro cultivo, la entrada recién guardada quedaría
     // fuera de la lista y parecería que no se guardó.
     if (filtro.value && filtro.value !== cultivo) filtro.value = '';
 
-    decir(`Entrada de ${nombreCultivo(cultivo)} guardada y puesta en la cola de envío.`);
+    decir(
+      `Entrada de ${nombreCultivo(cultivo)} guardada${ubicacion ? ' con su ubicación' : ''} y puesta en la cola de envío.`
+    );
     await pintar();
   });
 
@@ -355,13 +453,33 @@ BitacoraView.montar = async ({ contenedor, vigente }) => {
 
   filtro.addEventListener('change', pintar);
 
-  /* Eliminar y reintentar -------------------------------------------------- */
+  /* Compartir, eliminar y reintentar --------------------------------------- */
 
   // Un solo escuchador sobre el contenedor: la lista se reescribe entera en
   // cada consulta, así que uno puesto en cada botón se perdería.
   lista.addEventListener('click', async (evento) => {
     if (evento.target.closest('[data-accion="reintentar"]')) {
       await pintar();
+      return;
+    }
+
+    const botonCompartir = evento.target.closest('[data-compartir]');
+    if (botonCompartir) {
+      const entrada = visibles.get(Number(botonCompartir.dataset.compartir));
+      if (!entrada) return;
+
+      botonCompartir.disabled = true;
+      try {
+        // Se llama dentro del clic: navigator.share exige un gesto del usuario.
+        const resultado = await compartir(datosParaCompartir(entrada));
+        avisar(RESULTADO_COMPARTIR[resultado].texto, { tono: RESULTADO_COMPARTIR[resultado].tono });
+      } catch {
+        avisar('No se pudo compartir ni copiar la entrada. Selecciona el texto y cópialo a mano.', {
+          tono: 'error',
+        });
+      } finally {
+        botonCompartir.disabled = false;
+      }
       return;
     }
 

@@ -1,0 +1,177 @@
+/* =============================================================================
+   Vista /bitacora · campo "Ubicación en la parcela" y botón Compartir
+
+   Sin colores literales: todo sale de las variables de main.css, así el tema
+   oscuro funciona solo. Reutiliza .campo y .clima-boton.
+   ============================================================================= */
+
+/* ── Campo de ubicación (dentro del formulario) ───────────────────────────── */
+
+.ubicacion {
+  display: grid;
+  gap: 0.65rem;
+  /* Un fieldset no se encoge por debajo de su contenido sin esto. */
+  min-width: 0;
+  margin: 0;
+  padding: 0.85rem 1rem 1rem;
+  border: 1px dashed var(--linea);
+  border-radius: var(--radio);
+}
+
+.ubicacion legend {
+  padding: 0 0.35rem;
+}
+
+.ubicacion__para-que {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--tinta-suave);
+}
+
+/* Estado del permiso (Permissions API) */
+
+.ubicacion__permiso {
+  margin: 0;
+  font-family: var(--dato);
+  font-size: 0.76rem;
+  color: var(--tinta-suave);
+}
+
+.ubicacion__permiso strong {
+  font-weight: 500;
+}
+
+.ubicacion__permiso--si strong {
+  color: var(--optimo);
+}
+
+.ubicacion__permiso--no strong {
+  color: var(--critico-alto);
+}
+
+.ubicacion__permiso--pendiente strong {
+  color: var(--alerta);
+}
+
+/* Botón + lectura obtenida */
+
+.ubicacion__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+
+.ubicacion .clima-boton {
+  border-color: var(--verde);
+}
+
+.ubicacion .clima-boton[disabled] {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.ubicacion__lectura {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.7rem;
+  font-family: var(--dato);
+  font-size: 0.8rem;
+}
+
+.ubicacion__punto {
+  font-weight: 500;
+  color: var(--tinta);
+}
+
+.ubicacion__precision {
+  color: var(--tinta-suave);
+}
+
+.ubicacion__lectura a,
+.bitacora-entrada__lugar a {
+  color: var(--verde);
+}
+
+.ubicacion__quitar {
+  font: inherit;
+  color: var(--arcilla);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Error y ayuda para volver a habilitar el permiso */
+
+.ubicacion__aviso {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  background: var(--nota);
+  border-left: 3px solid var(--critico-alto);
+  border-radius: var(--radio);
+}
+
+/* display:grid ganaría al atributo hidden sin esta regla. */
+.ubicacion__aviso[hidden] {
+  display: none;
+}
+
+.ubicacion__error,
+.ubicacion__ayuda-titulo,
+.ubicacion__ayuda-nota {
+  margin: 0;
+}
+
+.ubicacion__ayuda-titulo {
+  font-weight: 600;
+}
+
+.ubicacion__pasos {
+  margin: 0;
+  padding-left: 1.3rem;
+}
+
+.ubicacion__ayuda-nota {
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
+}
+
+/* ── En cada entrada de la lista ──────────────────────────────────────────── */
+
+.bitacora-entrada__lugar {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--tinta-suave);
+  overflow-wrap: anywhere;
+}
+
+.bitacora-entrada__lugar-etiqueta {
+  margin-right: 0.4rem;
+  font-family: var(--dato);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bitacora-entrada__coords {
+  font-family: var(--dato);
+  font-size: 0.8rem;
+}
+
+.bitacora-entrada__coords + a {
+  margin-left: 0.5rem;
+}
+
+.bitacora-entrada__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

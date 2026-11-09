@@ -75,7 +75,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v14`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v15`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -117,6 +117,7 @@ const APP_SHELL = [
   "./styles/serviceWorker.css",
   "./styles/instalacion.css",
   "./styles/envios.css",
+  "./styles/ubicacion.css",
 
   // JS de arranque
   "./src/main.js",
@@ -136,8 +137,11 @@ const APP_SHELL = [
   "./src/components/ServiceWorkerPanel.js",
   "./src/components/BotonInstalar.js",
   "./src/components/PanelEnvios.js",
+  "./src/components/CampoUbicacion.js",
   "./src/services/apiService.js",
   "./src/services/outboxService.js",
+  "./src/services/ubicacionService.js",
+  "./src/services/compartirService.js",
   "./src/services/climaService.js",
   "./src/services/cultivosIndex.js",
   "./src/services/cultivosService.js",

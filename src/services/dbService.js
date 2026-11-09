@@ -34,6 +34,12 @@
  * Las entradas que se guardaron con la v1 no tienen `envio`: se conservan tal
  * cual y la vista las marca como "solo en este dispositivo".
  *
+ * Las entradas pueden llevar además, opcionales:
+ *                  ubicacion: { lat, lon, precision, fecha }   (GPS)
+ *                  referencia: 'Parcela norte, surco 5'         (escrita)
+ * No hizo falta subir la versión por eso: IndexedDB no fija los campos de cada
+ * objeto, solo los stores y los índices, y ninguno de los dos cambió.
+ *
  * Todo lo que toca IndexedDB desde la PÁGINA vive en este archivo. El Service
  * Worker (sw.js) abre la misma base con su propio código, porque no puede
  * importar módulos ES: si cambia el esquema, hay que cambiarlo en los dos.
@@ -159,17 +165,26 @@ function abrir() {
  * Esta función NO toca la red: solo guarda. El envío lo intenta después
  * services/outboxService.js.
  *
- * @param {{cultivo: string, tipo: string, nota: string}} datos
+ * @param {{cultivo: string, tipo: string, nota: string,
+ *          ubicacion?: Object|null, referencia?: string}} datos
  *        cultivo: id del cultivo (slug, p. ej. "chile-manzano")
+ *        ubicacion / referencia: opcionales (ver CampoUbicacion.js)
  * @param {{url: string}} envio endpoint al que se mandará la entrada
  * @returns {Promise<{entrada: Object, pendiente: Object}>} los dos registros
  *          guardados, ya con el id que les asignó IndexedDB
  */
-export async function crearEntrada({ cultivo, tipo, nota }, { url }) {
+export async function crearEntrada({ cultivo, tipo, nota, ubicacion = null, referencia = '' }, { url }) {
   const db = await abrir();
 
   const fecha = new Date().toISOString();
-  const entrada = { cultivo, tipo, nota, fecha, envio: { estado: 'pendiente' } };
+
+  // Los opcionales solo se guardan si vienen: así una entrada sin ubicación se
+  // ve igual que las de antes.
+  const extra = {};
+  if (ubicacion) extra.ubicacion = ubicacion;
+  if (referencia) extra.referencia = referencia;
+
+  const entrada = { cultivo, tipo, nota, ...extra, fecha, envio: { estado: 'pendiente' } };
 
   // Todo lo que no es IndexedDB se calcula ANTES de abrir la transacción: una
   // transacción se cierra sola en cuanto deja de tener peticiones en curso.
@@ -186,7 +201,7 @@ export async function crearEntrada({ cultivo, tipo, nota }, { url }) {
     // Lo que viaja al servidor. idCliente identifica la entrada aunque se
     // mande dos veces (un reintento tras perder la respuesta): con él el
     // servidor puede descartar el duplicado.
-    cuerpo: { idCliente, cultivo, tipo, nota, fecha },
+    cuerpo: { idCliente, cultivo, tipo, nota, ...extra, fecha },
     creada: fecha,
     intentos: 0,
     ultimoError: null,
