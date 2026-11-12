@@ -75,7 +75,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v16`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v15`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -118,7 +118,6 @@ const APP_SHELL = [
   "./styles/instalacion.css",
   "./styles/envios.css",
   "./styles/ubicacion.css",
-  "./styles/notificaciones.css",
 
   // JS de arranque
   "./src/main.js",
@@ -129,7 +128,6 @@ const APP_SHELL = [
   "./src/pwa/registerSW.js",
   "./src/pwa/swDiagnostico.js",
   "./src/pwa/instalacion.js",
-  "./src/pwa/notificaciones.js",
   "./src/components/Aviso.js",
   "./src/components/CachePanel.js",
   "./src/components/CultivoCard.js",
@@ -598,38 +596,6 @@ self.addEventListener("sync", (event) => {
   event.waitUntil(enviarCola(event.lastChance));
 });
 
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-
-  const destino = event.notification.data?.url;
-  if (!destino) return;
-
-  event.waitUntil(
-    (async () => {
-      try {
-        const url = new URL(destino, self.registration.scope);
-        if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) {
-          console.error("[SW] notificationclick: URL fuera del scope de SoilAir", url.href);
-          return;
-        }
-
-        const ventanas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-        const ventanaApp = ventanas.find((ventana) => ventana.url.startsWith(self.registration.scope));
-
-        if (ventanaApp) {
-          await ventanaApp.navigate(url.href);
-          await ventanaApp.focus();
-          return;
-        }
-
-        await self.clients.openWindow(url.href);
-      } catch (error) {
-        console.error("[SW] notificationclick: no se pudo abrir la bitácora", error);
-      }
-    })(),
-  );
-});
-
 /* ── IndexedDB sin librería ───────────────────────────────────────────────── */
 
 /** Convierte una petición de IndexedDB (eventos) en promesa. */
@@ -839,19 +805,6 @@ function enviarCola(ultimaOportunidad) {
         );
         // Rechazar waitUntil = pedirle al navegador otro intento más tarde.
         throw new Error(`${fallidos} envío(s) de la bitácora siguen pendientes`);
-      }
-
-      if (enviados && self.Notification?.permission === "granted") {
-        try {
-          await self.registration.showNotification("Bitácora sincronizada", {
-            body: `${enviados} ${enviados === 1 ? "entrada se envió" : "entradas se enviaron"} y la cola quedó vacía.`,
-            icon: new URL("images/icons/icon-192.png", self.registration.scope).href,
-            tag: "soilair-bitacora-sincronizada",
-            data: { url: new URL("bitacora", self.registration.scope).href },
-          });
-        } catch (error) {
-          console.error("[SW] sync: no se pudo mostrar la notificación de bitácora", error);
-        }
       }
 
       console.log(`[SW] sync: ${enviados} entrada(s) confirmadas; la cola quedó vacía`);
