@@ -32,6 +32,7 @@ import { NotFoundView } from "./views/NotFoundView.js";
 import { iniciarInstalacion } from "./pwa/instalacion.js";
 import { montarBotonInstalar } from "./components/BotonInstalar.js";
 import { iniciarEnvios } from "./services/outboxService.js";
+import { iniciarNotificaciones } from "./pwa/notificaciones.js";
 
 const rutas = [
   { path: "/", view: HomeView, titulo: "Catálogo de cultivos" },
@@ -72,6 +73,7 @@ montarBotonInstalar(); // después de que exista el DOM del Shell (el script es 
 // Va en el punto de entrada y no en la vista: "al abrir la app" tiene que pasar
 // aunque se entre por otra ruta que no sea /bitacora.
 iniciarEnvios();
+iniciarNotificaciones();
 
 const router = new Router(rutas, {
   contenedor: document.querySelector("#app"),

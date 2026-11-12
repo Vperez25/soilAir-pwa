@@ -75,7 +75,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v15`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v16`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -118,6 +118,7 @@ const APP_SHELL = [
   "./styles/instalacion.css",
   "./styles/envios.css",
   "./styles/ubicacion.css",
+  "./styles/notificaciones.css",
 
   // JS de arranque
   "./src/main.js",
@@ -128,6 +129,7 @@ const APP_SHELL = [
   "./src/pwa/registerSW.js",
   "./src/pwa/swDiagnostico.js",
   "./src/pwa/instalacion.js",
+  "./src/pwa/notificaciones.js",
   "./src/components/Aviso.js",
   "./src/components/CachePanel.js",
   "./src/components/CultivoCard.js",
@@ -582,6 +584,30 @@ const DB_VERSION = 2;
 const STORE_BITACORA = "bitacora";
 const STORE_OUTBOX = "outbox";
 
+async function mostrarAvisoSincronizacion(enviados) {
+  if (
+    enviados < 1 ||
+    typeof self.registration.showNotification !== "function" ||
+    typeof self.Notification === "undefined" ||
+    self.Notification.permission !== "granted"
+  ) {
+    return;
+  }
+
+  try {
+    await self.registration.showNotification("Bitácora sincronizada", {
+      body: enviados === 1
+        ? "El servidor confirmó el envío de tu entrada de campo."
+        : `El servidor confirmó el envío de ${enviados} entradas de campo.`,
+      icon: new URL("./images/icons/icon-192.png", self.registration.scope).href,
+      tag: "soilair-bitacora-sincronizada",
+      data: { url: new URL("bitacora", self.registration.scope).href },
+    });
+  } catch (error) {
+    console.warn(`[SW] sync: no se pudo mostrar la notificación: ${error.message}`);
+  }
+}
+
 self.addEventListener("sync", (event) => {
   console.log(
     `[SW] sync: tag "${event.tag}"` +
@@ -807,6 +833,7 @@ function enviarCola(ultimaOportunidad) {
         throw new Error(`${fallidos} envío(s) de la bitácora siguen pendientes`);
       }
 
+      await mostrarAvisoSincronizacion(enviados);
       console.log(`[SW] sync: ${enviados} entrada(s) confirmadas; la cola quedó vacía`);
     } finally {
       db.close();
@@ -817,3 +844,39 @@ function enviarCola(ultimaOportunidad) {
     ? self.navigator.locks.request(CANDADO_OUTBOX, trabajo)
     : trabajo();
 }
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil((async () => {
+    const destino = new URL(
+      event.notification.data?.url ?? "bitacora",
+      self.registration.scope,
+    );
+    if (
+      destino.origin !== self.location.origin ||
+      !destino.href.startsWith(self.registration.scope)
+    ) {
+      console.warn("[SW] notificationclick: se rechazó una URL fuera del scope");
+      return;
+    }
+
+    const ventanas = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    });
+    const existente = ventanas.find((cliente) =>
+      cliente.url.startsWith(self.registration.scope),
+    );
+
+    if (existente) {
+      if (existente.url !== destino.href) await existente.navigate(destino.href);
+      await existente.focus();
+      return;
+    }
+
+    await self.clients.openWindow(destino.href);
+  })().catch((error) => {
+    console.warn(`[SW] notificationclick: no se pudo abrir la bitácora: ${error.message}`);
+  }));
+});

@@ -43,6 +43,7 @@
  */
 
 import { API_BITACORA } from '../config.js';
+import { notificarSincronizacionBitacora } from '../pwa/notificaciones.js';
 import { postJson } from './apiService.js';
 import {
   crearEntrada,
@@ -241,6 +242,12 @@ async function vaciarCola(motivo) {
       await registrarFallo(pendiente.id, error.message);
       console.warn(`${ETIQUETA} entrada #${pendiente.entradaId} NO se envió (${error.message}); sigue en la cola`);
     }
+  }
+
+  if (enviados > 0 && fallidos === 0) {
+    notificarSincronizacionBitacora(enviados).catch((error) =>
+      console.warn(`${ETIQUETA} no se pudo mostrar la notificación: ${error.message}`)
+    );
   }
 
   notificar(redactar({ enviados, fallidos, ultimoError, origen: 'pagina' }));
