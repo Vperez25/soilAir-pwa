@@ -1,0 +1,50 @@
+.notificaciones {
+  order: 1;
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  max-width: min(100%, 24rem);
+}
+
+.notificaciones__boton {
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--tinta);
+  background: var(--tarjeta);
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+.notificaciones__boton:hover:not(:disabled) {
+  border-color: var(--verde);
+  color: var(--verde);
+}
+
+.notificaciones__boton:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.notificaciones__estado,
+.notificaciones__ayuda {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--tinta-suave);
+}
+
+.notificaciones__ayuda {
+  max-width: 24rem;
+}
+
+.notificaciones__ayuda[hidden] {
+  display: none;
+}
+
+@media (min-width: 620px) {
+  .notificaciones {
+    order: 3;
+  }
+}

@@ -43,6 +43,7 @@
  */
 
 import { API_BITACORA } from '../config.js';
+import { notificarBitacoraSincronizada } from '../pwa/notificaciones.js';
 import { postJson } from './apiService.js';
 import {
   crearEntrada,
@@ -244,6 +245,9 @@ async function vaciarCola(motivo) {
   }
 
   notificar(redactar({ enviados, fallidos, ultimoError, origen: 'pagina' }));
+  if (enviados && !fallidos) {
+    await notificarBitacoraSincronizada(enviados);
+  }
   return { enviados, fallidos };
 }
 

@@ -119,6 +119,7 @@
     <link rel="stylesheet" href="styles/instalacion.css" />
     <link rel="stylesheet" href="styles/envios.css" />
     <link rel="stylesheet" href="styles/ubicacion.css" />
+    <link rel="stylesheet" href="styles/notificaciones.css" />
   </head>
   <body>
     <header class="topbar">
@@ -149,6 +150,14 @@
         <span class="tema__icono" aria-hidden="true">☀</span>
         <span class="tema__texto">Claro</span>
       </button>
+
+      <div class="notificaciones">
+        <button type="button" id="boton-notificaciones" class="notificaciones__boton">
+          Activar notificaciones
+        </button>
+        <span id="estado-notificaciones" class="notificaciones__estado" role="status" aria-live="polite"></span>
+        <p id="ayuda-notificaciones" class="notificaciones__ayuda" hidden></p>
+      </div>
 
       <button type="button" id="boton-instalar" class="instalar" hidden>
         Instalar app

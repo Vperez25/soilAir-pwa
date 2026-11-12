@@ -32,6 +32,7 @@ import { NotFoundView } from "./views/NotFoundView.js";
 import { iniciarInstalacion } from "./pwa/instalacion.js";
 import { montarBotonInstalar } from "./components/BotonInstalar.js";
 import { iniciarEnvios } from "./services/outboxService.js";
+import { iniciarControlNotificaciones } from "./pwa/notificaciones.js";
 
 const rutas = [
   { path: "/", view: HomeView, titulo: "Catálogo de cultivos" },
@@ -66,6 +67,7 @@ iniciarRegistroFetch();
 
 iniciarInstalacion(); // lo primero que se ejecuta, antes de cualquier await
 montarBotonInstalar(); // después de que exista el DOM del Shell (el script es type="module", ya existe)
+iniciarControlNotificaciones();
 
 // Cola de envíos de la bitácora: escucha al Service Worker, prepara el plan B
 // (evento online) y, si quedó algo pendiente de otra sesión, lo vuelve a pedir.
