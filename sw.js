@@ -11,6 +11,9 @@
  *   fetch      elige una estrategia según la petición y responde con ella.
  *   sync       Background Sync: envía al servidor la cola de la bitácora
  *              (store outbox de IndexedDB) cuando el navegador ve que hay red.
+ *   push       Web Push: muestra el aviso que manda el backend (soilAir-api)
+ *              cuando se registra una entrada nueva en la bitácora, aunque
+ *              ninguna pestaña de SoilAir esté abierta.
  *
  * Estrategias de fetch:
  *
@@ -75,7 +78,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v16`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v17`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -119,6 +122,7 @@ const APP_SHELL = [
   "./styles/envios.css",
   "./styles/ubicacion.css",
   "./styles/notificaciones.css",
+  "./styles/cuenta.css",
 
   // JS de arranque
   "./src/main.js",
@@ -130,6 +134,7 @@ const APP_SHELL = [
   "./src/pwa/swDiagnostico.js",
   "./src/pwa/instalacion.js",
   "./src/pwa/notificaciones.js",
+  "./src/pwa/pushService.js",
   "./src/components/Aviso.js",
   "./src/components/CachePanel.js",
   "./src/components/CultivoCard.js",
@@ -151,6 +156,7 @@ const APP_SHELL = [
   "./src/services/filtroService.js",
   "./src/services/temaService.js",
   "./src/services/visitasService.js",
+  "./src/services/sesionService.js",
   "./src/utils/almacenamiento.js",
   "./src/utils/cookies.js",
   "./src/utils/escapar.js",
@@ -159,6 +165,7 @@ const APP_SHELL = [
   "./src/views/AboutView.js",
   "./src/views/BitacoraView.js",
   "./src/views/ClimaView.js",
+  "./src/views/CuentaView.js",
   "./src/views/CultivoDetailView.js",
   "./src/views/DiagnosticoView.js",
   "./src/views/HomeView.js",
@@ -336,6 +343,12 @@ self.addEventListener("fetch", (event) => {
 
   // 3. Solo recursos propios y los dominios externos previstos. Cualquier otro
   //    dominio no es nuestro y se deja pasar sin tocar.
+  //
+  //    El backend (soilAir-api, API_BASE en src/config.js) NO está en esta
+  //    lista A PROPÓSITO: sesión, suscripciones push y bitácora son datos
+  //    vivos y de cada usuario; una copia en caché sería incorrecta (y ajena,
+  //    si en el navegador entra otro usuario). Sus GET salen por aquí sin
+  //    respondWith y sus POST/DELETE ya se descartaron en el paso 1.
   const esLocal = url.origin === self.location.origin;
   const esOpenMeteo = url.hostname === "api.open-meteo.com";
   const esGoogleFonts =
@@ -595,6 +608,14 @@ async function mostrarAvisoSincronizacion(enviados) {
   }
 
   try {
+    // Con push activo, el aviso lo manda el backend al guardar la entrada (ver
+    // el evento `push` más abajo). Mostrar también este saldrían dos.
+    if (await self.registration.pushManager?.getSubscription()) {
+      console.log("[SW] sync: hay suscripción push; el aviso lo enviará el servidor");
+      return;
+    }
+
+
     await self.registration.showNotification("Bitácora sincronizada", {
       body: enviados === 1
         ? "El servidor confirmó el envío de tu entrada de campo."
@@ -732,13 +753,20 @@ async function registrarFalloEnCola(db, idPendiente, motivo) {
 async function enviarElemento(pendiente) {
   let respuesta;
 
+  const headers = { "Content-Type": "application/json", Accept: "application/json" };
+  // Sesión de quien escribió la entrada (la guardó outboxService en la cola):
+  // el worker no puede leer localStorage. Con ella el backend sabe a qué
+  // usuario avisar por push.
+  if (pendiente.token) headers.Authorization = `Bearer ${pendiente.token}`;
+
   try {
     respuesta = await fetch(pendiente.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers,
       body: JSON.stringify(pendiente.cuerpo),
-      // Un servidor que nunca contesta no debe dejar el evento colgado.
-      signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined,
+      // Un servidor que nunca contesta no debe dejar el evento colgado. 20 s:
+      // margen para el arranque en frío de Vercel y para que Neon despierte.
+      signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined,
     });
   } catch (error) {
     throw new Error(
@@ -845,6 +873,67 @@ function enviarCola(ultimaOportunidad) {
     : trabajo();
 }
 
+/* ── Push: avisos del backend ─────────────────────────────────────────────── */
+
+/**
+ * El backend (soilAir-api, src/eventos/nuevaEntrada.js) manda un JSON:
+ *
+ *   { title, body, url: "cultivo/maiz", tag: "bitacora-maiz", entradaId }
+ *
+ * `url` e ícono son RELATIVOS al scope del worker. Se resuelven con
+ * new URL(ruta, self.registration.scope), que da
+ *   https://vperez25.github.io/soilAir-pwa/cultivo/maiz   en GitHub Pages
+ *   http://127.0.0.1:5500/cultivo/maiz                    en local
+ * Una ruta absoluta ("/cultivo/maiz") se saltaría el prefijo /soilAir-pwa/.
+ *
+ * Plan B: si el mensaje no es JSON (por ejemplo, un push de prueba enviado
+ * como texto desde DevTools), el texto se usa como cuerpo del aviso.
+ */
+const AVISO_POR_DEFECTO = {
+  title: "SoilAir",
+  body: "Hay novedades en tu bitácora.",
+  url: "bitacora",
+  tag: "soilair-push",
+};
+
+function leerMensajePush(data) {
+  if (!data) return { ...AVISO_POR_DEFECTO };
+
+  try {
+    const json = data.json();
+    if (json && typeof json === "object") return { ...AVISO_POR_DEFECTO, ...json };
+  } catch {
+    // No era JSON: se sigue con el texto.
+  }
+
+  const texto = data.text().trim();
+  return { ...AVISO_POR_DEFECTO, body: texto || AVISO_POR_DEFECTO.body };
+}
+
+self.addEventListener("push", (event) => {
+  const mensaje = leerMensajePush(event.data);
+  const destino = new URL(mensaje.url, self.registration.scope).href;
+
+  console.log("[SW] push recibido:", mensaje.title, "->", destino);
+
+  // showNotification DENTRO de waitUntil: sin él el navegador puede apagar el
+  // worker antes de pintar el aviso, y con userVisibleOnly un push que no
+  // muestra nada se castiga (Chrome pone un aviso genérico y puede revocar).
+  event.waitUntil(
+    self.registration.showNotification(String(mensaje.title), {
+      body: String(mensaje.body),
+      icon: new URL("images/icons/icon-192.png", self.registration.scope).href,
+      tag: String(mensaje.tag),
+      // Con el mismo tag reemplaza al anterior; renotify hace que vuelva a sonar.
+      renotify: true,
+      lang: "es-MX",
+      data: { url: destino, entradaId: mensaje.entradaId ?? null },
+    }),
+  );
+});
+
+/* ── Clic en un aviso (local del 5A o push) ───────────────────────────────── */
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
@@ -870,9 +959,14 @@ self.addEventListener("notificationclick", (event) => {
     );
 
     if (existente) {
-      if (existente.url !== destino.href) await existente.navigate(destino.href);
-      await existente.focus();
-      return;
+      try {
+        if (existente.url !== destino.href) await existente.navigate(destino.href);
+        await existente.focus();
+        return;
+      } catch {
+        // navigate() solo funciona con pestañas que este worker controla; si
+        // no, se abre una ventana nueva abajo.
+      }
     }
 
     await self.clients.openWindow(destino.href);

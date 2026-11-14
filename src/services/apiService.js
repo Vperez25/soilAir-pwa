@@ -134,32 +134,42 @@ export class ApiService {
 }
 
 /**
- * POST con cuerpo JSON a una URL completa. Lo usa la cola de envíos
- * (services/outboxService.js) cuando el envío se hace desde la página: en el
- * plan B y con el botón "Reintentar ahora". En modo Background Sync el envío lo
- * hace sw.js con su propio fetch(), porque el worker no puede importar módulos.
+ * Espera por defecto de las peticiones al backend propio (Vercel + Neon). Deja
+ * margen para el arranque en frío de la función y para que Neon despierte la
+ * base, que se suspende tras unos minutos sin uso (unos segundos en total).
+ */
+export const TIMEOUT_BACKEND = 20000;
+
+/**
+ * Petición con cuerpo JSON a una URL completa (POST, DELETE…), con la sesión
+ * opcional en `Authorization: Bearer`. La usan la cola de la bitácora, la
+ * sesión y las suscripciones push.
  *
- * A diferencia de get(), NO reintenta por su cuenta: cuándo volver a intentar
- * lo decide la cola, y repetir un POST a ciegas podría duplicar el registro.
+ * NO reintenta por su cuenta: repetir un POST a ciegas podría duplicar el
+ * registro; cuándo volver a intentar lo decide quien llama.
  *
  * @param {string} url
- * @param {any} cuerpo se envía con JSON.stringify()
- * @param {{timeout?: number}} [opciones] milisegundos antes de abortar
+ * @param {{metodo?: string, cuerpo?: any, token?: string|null, timeout?: number}} [opciones]
  * @returns {Promise<{estado: number, datos: any}>} estado HTTP y JSON recibido
- *          (null si la respuesta no traía JSON)
- * @throws {ApiError} sin conexión, tiempo agotado o respuesta que no es 2xx
+ *          (null si la respuesta no traía JSON, como un 204)
+ * @throws {ApiError} sin conexión, tiempo agotado o respuesta que no es 2xx. Con
+ *         una respuesta de error, el mensaje es el `error` que mandó el servidor.
  */
-export async function postJson(url, cuerpo, { timeout = 10000 } = {}) {
+export async function pedirJson(url, { metodo = "GET", cuerpo, token = null, timeout = TIMEOUT_BACKEND } = {}) {
   const control = new AbortController();
   const reloj = setTimeout(() => control.abort(), timeout);
+
+  const headers = { Accept: "application/json" };
+  if (cuerpo !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   let respuesta;
   try {
     respuesta = await fetch(url, {
-      method: "POST",
+      method: metodo,
       signal: control.signal,
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(cuerpo),
+      headers,
+      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
     });
   } catch (error) {
     if (error.name === "AbortError") {
@@ -170,12 +180,27 @@ export async function postJson(url, cuerpo, { timeout = 10000 } = {}) {
     clearTimeout(reloj);
   }
 
+  const datos = await respuesta.json().catch(() => null);
+
   if (!respuesta.ok) {
-    throw new ApiError(`el servidor respondió ${respuesta.status}`, respuesta.status, "http");
+    throw new ApiError(datos?.error || `el servidor respondió ${respuesta.status}`, respuesta.status, "http");
   }
 
-  const datos = await respuesta.json().catch(() => null);
   return { estado: respuesta.status, datos };
+}
+
+/**
+ * POST con cuerpo JSON. Lo usa la cola de envíos (services/outboxService.js)
+ * cuando el envío se hace desde la página: en el plan B y con el botón
+ * "Reintentar ahora". En modo Background Sync el envío lo hace sw.js con su
+ * propio fetch(), porque el worker no puede importar módulos.
+ *
+ * @param {string} url
+ * @param {any} cuerpo se envía con JSON.stringify()
+ * @param {{timeout?: number, token?: string|null}} [opciones]
+ */
+export function postJson(url, cuerpo, { timeout = TIMEOUT_BACKEND, token = null } = {}) {
+  return pedirJson(url, { metodo: "POST", cuerpo, token, timeout });
 }
 
 export default ApiService;

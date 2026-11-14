@@ -45,7 +45,12 @@ export const CLAVES = {
   tema: `${PREFIJO}tema`,
   /** sessionStorage · texto del filtro aplicado en la vista /clima. */
   filtroClima: `${PREFIJO}clima:filtro`,
+  /** localStorage · sesión con el backend: JSON { usuario, token }. */
+  sesion: `${PREFIJO}sesion`,
 };
+
+/** Claves cuyo valor no se muestra en pantalla (vista de diagnóstico). */
+const SENSIBLES = new Set([CLAVES.sesion]);
 
 /** Etiqueta legible de cada almacén, para los mensajes de error. */
 const ETIQUETAS = {
@@ -195,7 +200,9 @@ export function volcar(tipo) {
 
     for (let i = 0; i < deposito.length; i++) {
       const clave = deposito.key(i);
-      if (clave?.startsWith(PREFIJO)) pares.push([clave, deposito.getItem(clave)]);
+      if (!clave?.startsWith(PREFIJO)) continue;
+      // El token de sesión no se pinta: una captura de /diagnostico lo filtraría.
+      pares.push([clave, SENSIBLES.has(clave) ? '(oculto: token de sesión)' : deposito.getItem(clave)]);
     }
 
     return pares;

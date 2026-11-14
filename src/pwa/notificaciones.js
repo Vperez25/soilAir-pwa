@@ -102,6 +102,11 @@ export async function notificarSincronizacionBitacora(enviados) {
   }
 
   const registration = await navigator.serviceWorker.ready;
+
+  // Con push activo, el aviso lo manda el backend al guardar la entrada (evento
+  // `push` de sw.js). Mostrar también este haría que salieran dos.
+  if (await registration.pushManager?.getSubscription()) return;
+
   await registration.showNotification('Bitácora sincronizada', {
     body: enviados === 1
       ? 'El servidor confirmó el envío de tu entrada de campo.'

@@ -26,17 +26,34 @@ export const REPO = 'soilAir-pwa';
 export const URL_PAGES = `https://vperez25.github.io/${REPO}/`;
 
 /**
- * Endpoint que recibe las entradas de la bitácora (POST, cuerpo JSON).
+ * URL del backend propio de SoilAir (repositorio soilAir-api, desplegado en
+ * Vercel como función serverless). Es el ÚNICO lugar del frontend donde
+ * aparece: los servicios arman sus rutas a partir de aquí.
  *
- * SoilAir todavía no tiene backend propio, así que se usa JSONPlaceholder, una
- * API pública de pruebas con CORS abierto: acepta el POST y responde
- * 201 Created con el mismo objeto más un `id`, pero no guarda nada de verdad.
- * Para conectar el servidor real basta con cambiar esta URL.
+ * GitHub Pages solo sirve archivos estáticos: no puede guardar secretos ni
+ * mandar notificaciones push. Por eso el backend vive en OTRO origen, con
+ * HTTPS, y es quien guarda las suscripciones y envía los avisos. Su CORS solo
+ * acepta el origen exacto de este sitio (https://vperez25.github.io).
+ *
+ * En local (Live Server o python -m http.server) se usa el backend de
+ * desarrollo (`npm run dev` en soilAir-api).
+ *
+ * El Service Worker NO intercepta este origen (ver el filtro del evento fetch
+ * en sw.js): las llamadas al backend nunca pasan por la caché.
+ */
+const EN_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+export const API_BASE = EN_LOCAL ? 'http://localhost:3000' : 'https://soilair-api.vercel.app';
+
+/**
+ * Endpoint que recibe las entradas de la bitácora (POST, cuerpo JSON). El
+ * backend la guarda en PostgreSQL y, si llegó con sesión, avisa por push a los
+ * dispositivos del usuario.
  *
  * Cada envío pendiente guarda la URL con la que se creó (store outbox), así que
  * cambiarla aquí no redirige lo que ya estaba en la cola.
  */
-export const API_BITACORA = 'https://jsonplaceholder.typicode.com/posts';
+export const API_BITACORA = `${API_BASE}/api/bitacora`;
 
 /**
  * Prefijo que el navegador antepone a todas las rutas de la SPA.

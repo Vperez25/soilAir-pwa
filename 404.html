@@ -127,8 +127,11 @@
     <link rel="stylesheet" href="styles/persistencia.css" />
     <link rel="stylesheet" href="styles/bitacora.css" />
     <link rel="stylesheet" href="styles/serviceWorker.css" />
+    <link rel="stylesheet" href="styles/instalacion.css" />
     <link rel="stylesheet" href="styles/envios.css" />
     <link rel="stylesheet" href="styles/ubicacion.css" />
+    <link rel="stylesheet" href="styles/notificaciones.css" />
+    <link rel="stylesheet" href="styles/cuenta.css" />
   </head>
   <body>
     <header class="topbar">
@@ -143,6 +146,7 @@
         <a href="/bitacora" data-link>Bitácora</a>
         <a href="/acerca" data-link>Acerca</a>
         <a href="/diagnostico" data-link>Diagnóstico</a>
+        <a href="/cuenta" data-link>Cuenta</a>
       </nav>
 
       <!--
@@ -158,6 +162,10 @@
       >
         <span class="tema__icono" aria-hidden="true">☀</span>
         <span class="tema__texto">Claro</span>
+      </button>
+
+      <button type="button" id="boton-instalar" class="instalar" hidden>
+        Instalar app
       </button>
     </header>
 
@@ -196,10 +204,21 @@
 
     <footer class="pie">
       <p>SoilAir — monitoreo de suelo y aire para agricultura de precisión.</p>
+      <div id="control-notificaciones" class="notificaciones" aria-live="polite">
+        <div>
+          <p class="notificaciones__titulo">Avisos de la bitácora</p>
+          <p id="estado-notificaciones" class="notificaciones__estado"></p>
+        </div>
+        <button type="button" id="activar-notificaciones" class="notificaciones__boton">
+          Activar notificaciones
+        </button>
+      </div>
       <p class="pie_nota">
         Unidad 2, Ejercicio 3 · Persistencia en el cliente (localStorage,
         sessionStorage y cookies)
       </p>
+
+      <p id="ayuda-instalar" class="instalar-ayuda" role="status" hidden></p>
     </footer>
 
     <script type="module" src="src/main.js"></script>

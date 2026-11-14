@@ -6,8 +6,10 @@
  * ACCIÓN ELEGIDA: registrar una entrada de la bitácora de campo.
  *
  *   Datos     { idCliente, cultivo, tipo, nota, fecha, ubicacion?, referencia? }
- *   Endpoint  POST API_BITACORA (src/config.js), cuerpo JSON
- *   Éxito     cualquier 2xx; JSONPlaceholder responde 201 Created con un `id`
+ *   Endpoint  POST API_BITACORA (src/config.js), cuerpo JSON, con
+ *             Authorization: Bearer <token> si había sesión al escribirla
+ *   Éxito     cualquier 2xx; el backend responde 201 Created con el `id` de la
+ *             fila (200 si ya la tenía) y, con sesión, avisa por push
  *
  * REGLA: GUARDAR PRIMERO, ENVIAR DESPUÉS
  * La entrada nunca va directo a la red. Primero se escribe en IndexedDB (la
@@ -45,6 +47,7 @@
 import { API_BITACORA } from '../config.js';
 import { notificarSincronizacionBitacora } from '../pwa/notificaciones.js';
 import { postJson } from './apiService.js';
+import { tokenActual } from './sesionService.js';
 import {
   crearEntrada,
   eliminarEntrada as eliminarEntradaDB,
@@ -227,7 +230,9 @@ async function vaciarCola(motivo) {
 
   for (const pendiente of pendientes) {
     try {
-      const { estado, datos } = await postJson(pendiente.url, pendiente.cuerpo);
+      const { estado, datos } = await postJson(pendiente.url, pendiente.cuerpo, {
+        token: pendiente.token,
+      });
       const idServidor = datos?.id ?? null;
 
       // SOLO aquí, con la respuesta 2xx en la mano, sale de la cola.
@@ -326,8 +331,9 @@ export async function solicitarEnvio(motivo) {
  * @throws si IndexedDB no pudo guardarla (en ese caso no se intenta enviar)
  */
 export async function registrarEntrada(datos) {
-  // 1. Guardar primero.
-  const { entrada } = await crearEntrada(datos, { url: API_BITACORA });
+  // 1. Guardar primero. Con la sesión de quien la escribe: el backend la usa
+  //    para avisar por push a los dispositivos de ese usuario.
+  const { entrada } = await crearEntrada(datos, { url: API_BITACORA, token: tokenActual() });
   console.log(`${ETIQUETA} entrada #${entrada.id} guardada en la cola (outbox)`);
   notificar();
 

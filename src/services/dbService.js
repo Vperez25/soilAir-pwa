@@ -27,7 +27,9 @@
  *
  *   v1  bitacora   { id, cultivo, tipo, nota, fecha }          índice: cultivo
  *   v2  + outbox   { id, entradaId, url, cuerpo, creada,       índice: entradaId
- *                    intentos, ultimoError, ultimoIntento }
+ *                    intentos, ultimoError, ultimoIntento,
+ *                    token }  <- sesión con el backend, o null (sin subir la
+ *                                versión: no es un store ni un índice nuevo)
  *       y las entradas nuevas de bitacora llevan además
  *                  envio: { estado: 'pendiente' | 'enviada', idServidor, enviadaEn }
  *
@@ -169,11 +171,17 @@ function abrir() {
  *          ubicacion?: Object|null, referencia?: string}} datos
  *        cultivo: id del cultivo (slug, p. ej. "chile-manzano")
  *        ubicacion / referencia: opcionales (ver CampoUbicacion.js)
- * @param {{url: string}} envio endpoint al que se mandará la entrada
+ * @param {{url: string, token?: string|null}} envio endpoint al que se mandará
+ *        la entrada y token de la sesión de quien la escribió (o null). El
+ *        token viaja con el envío porque el Service Worker, que lo manda con
+ *        Background Sync, no puede leer localStorage.
  * @returns {Promise<{entrada: Object, pendiente: Object}>} los dos registros
  *          guardados, ya con el id que les asignó IndexedDB
  */
-export async function crearEntrada({ cultivo, tipo, nota, ubicacion = null, referencia = '' }, { url }) {
+export async function crearEntrada(
+  { cultivo, tipo, nota, ubicacion = null, referencia = '' },
+  { url, token = null }
+) {
   const db = await abrir();
 
   const fecha = new Date().toISOString();
@@ -198,6 +206,7 @@ export async function crearEntrada({ cultivo, tipo, nota, ubicacion = null, refe
   const pendiente = {
     entradaId: id,
     url,
+    token,
     // Lo que viaja al servidor. idCliente identifica la entrada aunque se
     // mande dos veces (un reintento tras perder la respuesta): con él el
     // servidor puede descartar el duplicado.

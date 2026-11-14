@@ -33,6 +33,8 @@ import { iniciarInstalacion } from "./pwa/instalacion.js";
 import { montarBotonInstalar } from "./components/BotonInstalar.js";
 import { iniciarEnvios } from "./services/outboxService.js";
 import { iniciarNotificaciones } from "./pwa/notificaciones.js";
+import { reenviarSuscripcion } from "./pwa/pushService.js";
+import { CuentaView } from "./views/CuentaView.js";
 
 const rutas = [
   { path: "/", view: HomeView, titulo: "Catálogo de cultivos" },
@@ -40,6 +42,7 @@ const rutas = [
   { path: "/bitacora", view: BitacoraView, titulo: "Bitácora de campo" },
   { path: "/acerca", view: AboutView, titulo: "Acerca" },
   { path: "/diagnostico", view: DiagnosticoView, titulo: "Diagnóstico" },
+  { path: "/cuenta", view: CuentaView, titulo: "Cuenta y avisos" },
   {
     path: "/cultivo/:id",
     view: CultivoDetailView,
@@ -89,3 +92,8 @@ router.iniciar();
 // entrada, y no dentro de una vista: una vista se monta cada vez que se navega
 // y registraría el worker una y otra vez.
 window.addEventListener("load", registrarSW);
+
+// Push: si este dispositivo ya estaba suscrito y hay sesión, al abrir la app se
+// vuelve a mandar la suscripción al backend (y se renueva si cambió la llave
+// VAPID). Espera sola a que el Service Worker esté listo.
+window.addEventListener("load", () => reenviarSuscripcion("al abrir la app"));
