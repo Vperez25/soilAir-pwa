@@ -5,6 +5,34 @@
  */
 
 import { rutaCompleta } from '../router/router.js';
+import { CULTIVOS } from '../services/cultivosIndex.js';
+import { FOTOS } from '../services/fotosCultivos.js';
+import { slugify } from '../utils/slugify.js';
+import { escaparHtml } from '../utils/escapar.js';
+
+/** Crédito de cada foto, como piden sus licencias Creative Commons. */
+function Creditos() {
+  const filas = CULTIVOS.map(({ nombre }) => {
+    const foto = FOTOS[slugify(nombre)];
+    if (!foto) return '';
+    return `
+      <li>
+        ${escaparHtml(nombre)}:
+        <a href="${escaparHtml(foto.fuente)}" target="_blank" rel="noopener">foto</a>
+        de ${escaparHtml(foto.autor)},
+        <a href="${escaparHtml(foto.licenciaUrl)}" target="_blank" rel="noopener">${escaparHtml(foto.licencia)}</a>
+      </li>`;
+  }).join('');
+
+  return `
+    <h2>Créditos de las fotos</h2>
+    <p>
+      Fotos de Wikimedia Commons, recortadas y convertidas a AVIF, WebP y JPEG
+      en varios tamaños.
+    </p>
+    <ul>${filas}</ul>
+  `;
+}
 
 export function AboutView() {
   return `
@@ -39,10 +67,14 @@ export function AboutView() {
       </p>
 
       <p>
-        La ficha técnica vive en un módulo aparte que se carga con
-        <code>import()</code> dinámico: mientras estás en el listado no se
-        descarga, y baja apenas abres el primer cultivo.
+        Cada sección se carga con <code>import()</code> dinámico, junto con su
+        hoja de estilos, solo cuando entras a ella (o cuando pasas el mouse por
+        su enlace). Abrir el catálogo no descarga la bitácora ni el diagnóstico,
+        y las fotos de los cultivos bajan en el tamaño y formato que tu pantalla
+        necesita.
       </p>
+
+      ${Creditos()}
 
       <p>
         <a href="${rutaCompleta('/')}" data-link>Volver al catálogo</a>

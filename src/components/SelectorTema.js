@@ -23,9 +23,14 @@ const ASPECTO = {
 /**
  * Refleja en el botón el tema que se está mostrando.
  *
- * El texto visible dice el tema ACTUAL y el aria-label dice lo que va a pasar
+ * El texto visible dice el tema ACTUAL y el aria-label agrega lo que va a pasar
  * al pulsarlo: quien ve la pantalla se guía por el icono, y quien usa lector de
- * pantalla necesita saber la consecuencia, no el estado.
+ * pantalla necesita saber la consecuencia, no solo el estado.
+ *
+ * El aria-label EMPIEZA con el texto visible ("Oscuro: cambiar a tema claro"):
+ * quien maneja la página por voz dice lo que ve ("clic en Oscuro") y tiene que
+ * coincidir con el nombre accesible (WCAG 2.5.3, auditoría de Lighthouse
+ * "label-content-name-mismatch").
  *
  * @param {HTMLElement} boton
  * @param {'claro'|'oscuro'} tema
@@ -35,7 +40,7 @@ function pintar(boton, tema) {
 
   boton.querySelector('.tema__icono').textContent = icono;
   boton.querySelector('.tema__texto').textContent = texto;
-  boton.setAttribute('aria-label', accion);
+  boton.setAttribute('aria-label', `${texto}: ${accion.toLowerCase()}`);
   boton.setAttribute('title', accion);
   // Para el CSS y para las pruebas manuales desde la consola.
   boton.dataset.tema = tema;

@@ -11,12 +11,26 @@
 
 import { slugify } from '../utils/slugify.js';
 import { rutaCompleta } from '../router/router.js';
+import { FotoCultivo } from './FotoCultivo.js';
 
-export function CultivoCard(cultivo) {
+/**
+ * Ancho que ocupa la foto en cada diseño de la rejilla (cultivosView.css):
+ * 3 columnas desde 60rem (~300 px cada una), 2 desde 40rem y 1 en móvil.
+ */
+const SIZES_TARJETA = '(min-width: 60rem) 300px, (min-width: 40rem) 46vw, 92vw';
+
+/**
+ * @param {Object} cultivo
+ * @param {number} [indice] posición en el listado (se usa con Array.map). Solo
+ *        la primera tarjeta, la que se ve al abrir, carga su foto con
+ *        prioridad; las demás esperan al scroll (loading="lazy").
+ */
+export function CultivoCard(cultivo, indice = 0) {
   const id = slugify(cultivo.nombre);
 
   return `
     <article class="tarjeta">
+      ${FotoCultivo(id, { sizes: SIZES_TARJETA, prioridad: indice === 0, clase: 'tarjeta__foto' })}
       <p class="tarjeta__familia">${cultivo.familia}</p>
       <h2 class="tarjeta__nombre">${cultivo.nombre}</h2>
       <p class="tarjeta__cientifico">${cultivo.cientifico}</p>

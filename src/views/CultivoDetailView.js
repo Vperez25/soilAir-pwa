@@ -9,6 +9,7 @@
  */
 
 import { MedidorRango } from "../components/MedidorRango.js";
+import { FotoCultivo } from "../components/FotoCultivo.js";
 import { NotFoundView } from "./NotFoundView.js";
 import { rutaCompleta } from "../router/router.js";
 
@@ -44,6 +45,14 @@ export async function CultivoDetailView({ params }) {
         <p class="ficha__cientifico">${cultivo.cientifico}</p>
         <p class="ficha__resumen">${cultivo.resumen}</p>
       </header>
+
+      ${FotoCultivo(params.id, {
+        // Ocupa todo el ancho del contenido (máx. ~960 px).
+        sizes: "(min-width: 64rem) 960px, 92vw",
+        // Es lo más grande de esta pantalla (LCP): sin lazy y con prioridad.
+        prioridad: true,
+        clase: "ficha__foto",
+      })}
 
       <section class="lectura">
         <h2 class="lectura__titulo">Última lectura</h2>

@@ -5,7 +5,11 @@
   border: 1px solid var(--verde);
   border-radius: var(--radio);
   background: var(--verde);
-  color: #fff;
+  /* Texto oscuro en los DOS temas: el blanco sobre el verde no llegaba al
+     contraste mínimo de 4.5:1 (Lighthouse: 3.3 en claro y 2.2 en oscuro).
+     Con este tono queda en 5:1 y 8.5:1. */
+  color: #17140f;
+  font-weight: 600;
   cursor: pointer;
 }
 .instalar:hover {

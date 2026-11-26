@@ -8,6 +8,10 @@
  * cultivosService.js baja únicamente cuando se entra al detalle de un cultivo.
  *
  * Datos tomados del catálogo real de la app móvil SoilAir (assets/plants/).
+ *
+ * El ORDEN importa: la foto del primer cultivo es la que se ve al abrir la app,
+ * y index.html la precarga (images/cultivos/jitomate-*.avif). Si cambia el
+ * primero de la lista, hay que cambiar también esa precarga.
  */
 
 /** @type {Array<{nombre:string, cientifico:string, familia:string, cicloDias:number, resumen:string}>} */

@@ -25,7 +25,7 @@
  *   Network First            Datos del clima (Open-Meteo). Siempre intenta la red
  *                            para tener datos de ahora; solo si falla usa la
  *                            última copia guardada.
- *   Stale-While-Revalidate   Google Fonts y data/demo-swr.json. Responde al
+ *   Stale-While-Revalidate   data/demo-swr.json. Responde al
  *                            instante con la copia guardada y la actualiza en
  *                            segundo plano para la próxima vez.
  *   App Shell                Navegaciones a vistas del router: siempre el mismo
@@ -78,7 +78,7 @@ const CACHE_PREFIJO = "soilair-app-shell-";
  * Tanto lo precacheado en install como lo guardado en runtime por fetch van a
  * ESTA caché, así que al subir la versión se renuevan las dos cosas juntas.
  */
-const CACHE_VERSION = `${CACHE_PREFIJO}v17`;
+const CACHE_VERSION = `${CACHE_PREFIJO}v18`;
 
 /* ── App Shell ────────────────────────────────────────────────────────────── */
 
@@ -91,14 +91,20 @@ const CACHE_VERSION = `${CACHE_PREFIJO}v17`;
  * la raíz de la app, './index.html' es /index.html en local y
  * /soilAir-pwa/index.html en GitHub Pages, sin escribir el nombre del repo.
  *
- * "JS de arranque" aquí es main.js y todo lo que importa de forma ESTÁTICA
- * (incluidas las vistas): si falta un solo módulo de ese grafo, el navegador no
- * ejecuta main.js y la app no arranca.
+ * "JS de arranque" aquí es main.js, lo que importa de forma ESTÁTICA y también
+ * las vistas y el CSS que el router carga con import() DIFERIDO. Que la página
+ * no los pida al abrir no significa que no se necesiten sin conexión: esta
+ * precarga ocurre DESPUÉS del evento load (registerSW se llama en `load`), en
+ * segundo plano, así que no compite con el primer pintado y deja lista la app
+ * entera para usarse offline.
  *
  * NO se incluye lo que se pide bajo demanda:
  *   - los datos del clima (Open-Meteo) y la bitácora (IndexedDB)
- *   - las tipografías de Google Fonts: son de otro dominio y se guardan en
- *     runtime con Stale-While-Revalidate al usarse por primera vez.
+ *   - las fotos de los cultivos (images/cultivos): hay 3 tamaños y 3 formatos
+ *     de cada una y el navegador elige UNA según la pantalla. Se guardan en
+ *     runtime (Cache First) las que de verdad se piden.
+ *   - las capturas de pantalla del manifest: solo las usa el diálogo de
+ *     instalación del navegador, que las pide por su cuenta.
  *
  * cache.addAll() es todo o nada: si UNA de estas rutas da error, la instalación
  * entera falla y el worker nuevo no llega a activarse. Por eso la lista debe
@@ -109,7 +115,8 @@ const APP_SHELL = [
   "./",
   "./index.html",
 
-  // Hojas de estilo (el mismo orden que en index.html)
+  // Hojas de estilo: las globales de index.html y las de cada vista (diferidas)
+  "./styles/fuentes.css",
   "./styles/main.css",
   "./styles/shell.css",
   "./styles/views.css",
@@ -124,7 +131,16 @@ const APP_SHELL = [
   "./styles/notificaciones.css",
   "./styles/cuenta.css",
 
-  // JS de arranque
+  // Fuentes propias (antes eran de Google Fonts)
+  "./fonts/crimson-text-400.woff2",
+  "./fonts/crimson-text-400-italic.woff2",
+  "./fonts/crimson-text-600.woff2",
+  "./fonts/crimson-text-700.woff2",
+  "./fonts/ibm-plex-mono-400.woff2",
+  "./fonts/ibm-plex-mono-500.woff2",
+  "./fonts/ibm-plex-sans-variable.woff2",
+
+  // JS de arranque y vistas diferidas
   "./src/main.js",
   "./src/config.js",
   "./src/router/router.js",
@@ -138,6 +154,7 @@ const APP_SHELL = [
   "./src/components/Aviso.js",
   "./src/components/CachePanel.js",
   "./src/components/CultivoCard.js",
+  "./src/components/FotoCultivo.js",
   "./src/components/MedidorRango.js",
   "./src/components/Navbar.js",
   "./src/components/SelectorTema.js",
@@ -157,9 +174,11 @@ const APP_SHELL = [
   "./src/services/temaService.js",
   "./src/services/visitasService.js",
   "./src/services/sesionService.js",
+  "./src/services/fotosCultivos.js",
   "./src/utils/almacenamiento.js",
   "./src/utils/cookies.js",
   "./src/utils/escapar.js",
+  "./src/utils/estilos.js",
   "./src/utils/slugify.js",
   "./src/vendor/idb.js",
   "./src/views/AboutView.js",
@@ -182,10 +201,6 @@ const APP_SHELL = [
   // Íconos que enlaza el HTML: favicon y apple-touch-icon (iOS)
   "./images/icons/favicon-32.png",
   "./images/icons/apple-touch-icon.png",
-
-  // Capturas de pantalla que enlaza el manifest.
-  "./images/screenshots/escritorio-1280x720r.png",
-  "./images/screenshots/movil-540x720r.png",
 ];
 
 /* ── install: precachear el App Shell ─────────────────────────────────────── */
@@ -283,10 +298,10 @@ function sinConexion(mensaje) {
 
 /**
  * ¿Vale la pena guardar esta respuesta? Las normales, si son 2xx. Las "opaque"
- * (peticiones no-cors a otro dominio, como el CSS y las fuentes de Google Fonts)
+ * (peticiones no-cors a otro dominio)
  * siempre tienen status 0 y ok=false aunque hayan salido bien; no se pueden
  * inspeccionar, pero sin guardarlas las fuentes nunca llegarían a la caché.
- * Solo se usa en SWR de Google Fonts.
+ * Lo usa la estrategia Stale-While-Revalidate.
  */
 function esGuardable(respuesta) {
   return respuesta.ok || respuesta.type === "opaque";
@@ -351,11 +366,7 @@ self.addEventListener("fetch", (event) => {
   //    respondWith y sus POST/DELETE ya se descartaron en el paso 1.
   const esLocal = url.origin === self.location.origin;
   const esOpenMeteo = url.hostname === "api.open-meteo.com";
-  const esGoogleFonts =
-    url.hostname === "fonts.googleapis.com" ||
-    url.hostname === "fonts.gstatic.com";
-
-  if (!esLocal && !esOpenMeteo && !esGoogleFonts) return;
+  if (!esLocal && !esOpenMeteo) return;
 
   // 4. Elegir y ejecutar la estrategia adecuada.
   const estrategia = getStrategy(request);
@@ -377,14 +388,6 @@ function getStrategy(request) {
   // Archivo de prueba para SWR.
 
   if (url.pathname.endsWith("/data/demo-swr.json")) {
-    return staleWhileRevalidate;
-  }
-
-  // Google Fonts: cambian poco y no importa servir la copia anterior.
-  if (
-    url.hostname === "fonts.googleapis.com" ||
-    url.hostname === "fonts.gstatic.com"
-  ) {
     return staleWhileRevalidate;
   }
 

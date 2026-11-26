@@ -5,6 +5,10 @@
  *
  * Solo importa el índice ligero. La ficha técnica (cultivosService.js) NO se
  * descarga aquí: eso ocurre al abrir un detalle.
+ *
+ * Es una vista DIFERIDA (main.js la importa con import()). Cuando la app se
+ * abre en "/", el script de arranque de index.html precarga este módulo y sus
+ * imports (CultivoCard, FotoCultivo…): si cambian, hay que actualizar esa lista.
  */
 
 import { CULTIVOS } from "../services/cultivosIndex.js";

@@ -1,8 +1,52 @@
 /* ── Rejilla de tarjetas ──────────────────────────────────────────────────── */
 
 .rejilla {
+  /* Faltaba display: grid; sin él las columnas de abajo nunca se aplicaban y
+     las tarjetas salían en una sola columna también en escritorio. */
+  display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+/* ── Fotos de los cultivos (components/FotoCultivo.js) ────────────────────── */
+
+/*
+  El <img> trae width/height (proporción 3:2): el navegador reserva el hueco
+  antes de que llegue la foto, así que nada se mueve al cargarla (CLS = 0).
+  El fondo --fantasma se ve en ese hueco mientras tanto.
+*/
+.tarjeta__foto,
+.ficha__foto {
+  display: block;
+}
+
+.tarjeta__foto img,
+.ficha__foto img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  background: var(--fantasma);
+}
+
+/* En la tarjeta va pegada arriba, de borde a borde (anula el padding). */
+.tarjeta__foto {
+  margin: -1.3rem -1.35rem 1.1rem;
+}
+
+.tarjeta__foto img {
+  aspect-ratio: 3 / 2;
+  border-radius: calc(var(--radio) - 1px) calc(var(--radio) - 1px) 0 0;
+}
+
+/* En la ficha, más panorámica para no empujar tanto el contenido. */
+.ficha__foto {
+  margin: 1.8rem 0 0;
+}
+
+.ficha__foto img {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radio);
 }
 
 @media (min-width: 40rem) {

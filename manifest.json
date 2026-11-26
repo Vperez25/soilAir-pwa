@@ -32,16 +32,16 @@
 
   "screenshots": [
     {
-      "src": "./images/screenshots/escritorio-1280x720r.png",
+      "src": "./images/screenshots/escritorio-1280x720r.webp",
       "sizes": "1280x720",
-      "type": "image/png",
+      "type": "image/webp",
       "form_factor": "wide",
       "label": "Catálogo de cultivos en escritorio"
     },
     {
-      "src": "./images/screenshots/movil-540x720r.png",
+      "src": "./images/screenshots/movil-540x720r.webp",
       "sizes": "540x720",
-      "type": "image/png",
+      "type": "image/webp",
       "label": "Catálogo de cultivos en móvil"
     }
   ]

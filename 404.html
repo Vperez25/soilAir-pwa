@@ -15,6 +15,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SoilAir</title>
+    <meta
+      name="description"
+      content="SoilAir: catálogo de cultivos con los rangos ideales de suelo y aire, lecturas de los nodos en campo, clima y bitácora de campo que funciona sin conexión."
+    />
 
     <!--
       Raíz del sitio. Tiene que ir ANTES de las hojas de estilo y del módulo,
@@ -23,17 +27,63 @@
       Sin esto, un enlace directo a /soilAir-pwa/cultivo/maiz (que GitHub Pages
       atiende con 404.html) buscaría el script en .../cultivo/src/main.js.
 
+      Va ESCRITO en el HTML con el valor de GitHub Pages, y el script de abajo
+      lo cambia a "/" en local. Antes lo creaba el script, pero el "preload
+      scanner" del navegador lee el HTML por adelantado, antes de ejecutar ese
+      script: en un enlace directo pedía .../cultivo/styles/main.css (404) y
+      luego otra vez la ruta buena. Con el <base> escrito, en producción el
+      escáner ya resuelve bien desde el primer momento.
+
       El nombre del repositorio debe coincidir con REPO en src/config.js.
     -->
+    <base href="/soilAir-pwa/" />
     <script>
       (function () {
         var REPO = "soilAir-pwa";
         var enPages =
           location.pathname === "/" + REPO ||
           location.pathname.indexOf("/" + REPO + "/") === 0;
-        var etiqueta = document.createElement("base");
-        etiqueta.href = enPages ? "/" + REPO + "/" : "/";
-        document.head.appendChild(etiqueta);
+        if (!enPages) document.querySelector("base").href = "/";
+
+        /*
+          Precarga de la RUTA DE ENTRADA. Si se abre el catálogo (la
+          start_url), se piden ya sus módulos, su CSS y la foto del primer
+          cultivo: sin esto el router los descubre en cascada
+          (HomeView -> CultivoCard -> FotoCultivo -> fotosCultivos) y la
+          foto, que es el elemento más grande (LCP), llega al final. Solo se
+          hace en "/": abrir otra ruta no descarga el catálogo.
+          Debe coincidir con los imports de HomeView.js y con el primer
+          cultivo de src/services/cultivosIndex.js.
+        */
+        var ruta = location.pathname.slice(enPages ? REPO.length + 1 : 0) || "/";
+        if (ruta !== "/" && ruta !== "/index.html") return;
+
+        function precargar(atributos) {
+          var link = document.createElement("link");
+          for (var nombre in atributos) link.setAttribute(nombre, atributos[nombre]);
+          document.head.appendChild(link);
+        }
+        [
+          "src/views/HomeView.js",
+          "src/services/cultivosIndex.js",
+          "src/components/CultivoCard.js",
+          "src/utils/slugify.js",
+          "src/components/FotoCultivo.js",
+          "src/services/fotosCultivos.js",
+          "src/utils/escapar.js"
+        ].forEach(function (src) {
+          precargar({ rel: "modulepreload", href: src });
+        });
+        precargar({ rel: "preload", as: "style", href: "styles/cultivosView.css" });
+        precargar({
+          rel: "preload",
+          as: "image",
+          type: "image/avif",
+          fetchpriority: "high",
+          imagesrcset:
+            "images/cultivos/jitomate-480.avif 480w, images/cultivos/jitomate-720.avif 720w, images/cultivos/jitomate-1200.avif 1200w",
+          imagesizes: "(min-width: 60rem) 300px, (min-width: 40rem) 46vw, 92vw"
+        });
       })();
     </script>
 
@@ -112,26 +162,53 @@
       })();
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <!--
+      OPTIMIZACIÓN DE CARGA
 
+      Fuentes: se sirven desde el propio sitio (styles/fuentes.css). Se precargan
+      las dos que pinta la primera pantalla —el texto (IBM Plex Sans) y los
+      títulos (Crimson Text 700)— para que lleguen junto con el CSS y no se
+      descubran hasta después. crossorigin es obligatorio en la precarga de
+      fuentes, aunque sean del mismo dominio.
+    -->
+    <link rel="preload" href="fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/crimson-text-700.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!--
+      CSS: aquí solo va lo que usa CUALQUIER pantalla (fuentes, variables,
+      encabezado, pie, portada, botón de instalar, aviso del pie). El de cada
+      vista lo descarga el router al entrar a ella (ver `estilos` en main.js).
+      Antes eran 13 hojas que bloqueaban el primer pintado.
+    -->
+    <link rel="stylesheet" href="styles/fuentes.css" />
     <link rel="stylesheet" href="styles/main.css" />
     <link rel="stylesheet" href="styles/shell.css" />
     <link rel="stylesheet" href="styles/views.css" />
-    <link rel="stylesheet" href="styles/cultivosView.css" />
-    <link rel="stylesheet" href="styles/climaView.css" />
-    <link rel="stylesheet" href="styles/persistencia.css" />
-    <link rel="stylesheet" href="styles/bitacora.css" />
-    <link rel="stylesheet" href="styles/serviceWorker.css" />
     <link rel="stylesheet" href="styles/instalacion.css" />
-    <link rel="stylesheet" href="styles/envios.css" />
-    <link rel="stylesheet" href="styles/ubicacion.css" />
     <link rel="stylesheet" href="styles/notificaciones.css" />
-    <link rel="stylesheet" href="styles/cuenta.css" />
+
+    <!--
+      JS: main.js y sus imports ESTÁTICOS. Sin esto el navegador los descubre
+      en cascada (main.js -> router.js -> config.js…), un viaje de red por
+      nivel; con modulepreload los pide todos a la vez. Las vistas NO están
+      aquí: se descargan solo al entrar a su ruta. Si main.js gana un import
+      estático, se agrega a esta lista.
+    -->
+    <link rel="modulepreload" href="src/main.js" />
+    <link rel="modulepreload" href="src/router/router.js" />
+    <link rel="modulepreload" href="src/config.js" />
+    <link rel="modulepreload" href="src/utils/estilos.js" />
+    <link rel="modulepreload" href="src/components/Navbar.js" />
+    <link rel="modulepreload" href="src/components/SelectorTema.js" />
+    <link rel="modulepreload" href="src/services/temaService.js" />
+    <link rel="modulepreload" href="src/utils/almacenamiento.js" />
+    <link rel="modulepreload" href="src/components/Aviso.js" />
+    <link rel="modulepreload" href="src/services/visitasService.js" />
+    <link rel="modulepreload" href="src/utils/cookies.js" />
+    <link rel="modulepreload" href="src/pwa/fetchLog.js" />
+    <link rel="modulepreload" href="src/views/NotFoundView.js" />
+    <link rel="modulepreload" href="src/pwa/instalacion.js" />
+    <link rel="modulepreload" href="src/components/BotonInstalar.js" />
   </head>
   <body>
     <header class="topbar">
@@ -158,7 +235,7 @@
         type="button"
         id="selector-tema"
         class="tema"
-        aria-label="Cambiar el tema de la interfaz"
+        aria-label="Claro: cambiar el tema de la interfaz"
       >
         <span class="tema__icono" aria-hidden="true">☀</span>
         <span class="tema__texto">Claro</span>

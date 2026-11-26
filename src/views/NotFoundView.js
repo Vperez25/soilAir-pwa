@@ -2,15 +2,16 @@
  * views/NotFoundView.js
  * -----------------------------------------------------------------------------
  * Ruta no encontrada (404). La usa el router cuando ninguna ruta coincide, y
- * también CultivoDetailView cuando el :id no existe en el catálogo.
+ * también CultivoDetailView cuando el :id no existe en el catálogo. El router
+ * la reutiliza con otro `codigo` cuando una vista diferida no pudo descargarse.
  */
 
 import { rutaCompleta } from '../router/router.js';
 
-export function NotFoundView({ titulo, mensaje } = {}) {
+export function NotFoundView({ codigo, titulo, mensaje } = {}) {
   return `
     <section class="error">
-      <p class="error__codigo">404</p>
+      <p class="error__codigo">${codigo ?? '404'}</p>
       <h1 class="error__titulo">${titulo ?? 'Esta ruta no existe'}</h1>
       <p class="error__texto">
         ${mensaje ?? 'La dirección que escribiste no corresponde a ninguna pantalla de SoilAir.'}

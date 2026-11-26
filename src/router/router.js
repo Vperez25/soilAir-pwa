@@ -13,9 +13,21 @@
  *
  *   rutaCompleta()  (fullPath)  interna  -> completa   [le PONE el BASE_PATH]
  *   rutaActual()    (path)      completa -> interna    [le QUITA el BASE_PATH]
+ *
+ * CARGA DIFERIDA (lazy loading) DE RUTAS
+ * Una ruta puede traer su vista ya importada (`view`) o una función `cargar`
+ * que la importa con import() dinámico. Las diferidas se descargan —junto con
+ * sus hojas de estilo (`estilos`)— la PRIMERA vez que se necesitan:
+ *
+ *   - al entrar a la ruta, o
+ *   - antes, cuando el usuario muestra intención de ir: pasa el mouse, toca o
+ *     enfoca un enlace a esa ruta (precarga). Así el clic ya no espera a la red.
+ *
+ * Lo que el usuario nunca visita, nunca se descarga en esta carga de la página.
  */
 
 import { BASE_PATH, quitarBase } from '../config.js';
+import { cargarEstilos } from '../utils/estilos.js';
 
 /**
  * Convierte una ruta interna ("/cultivo/maiz") en la URL real del navegador
@@ -87,9 +99,14 @@ export function matchRoute(patron, ruta) {
   return params;
 }
 
+/** Cuánto se espera antes de mostrar "Cargando…" mientras baja una vista. */
+const ESPERA_INDICADOR = 200;
+
 export class Router {
   /**
-   * @param {Array<{path: string, view: Function, titulo?: string}>} rutas
+   * @param {Array<{path: string, titulo?: string, view?: Function,
+   *          cargar?: () => Promise<Function>, estilos?: string[]}>} rutas
+   *        `view` para una vista ya importada; `cargar` para una diferida.
    * @param {{contenedor: HTMLElement, noEncontrada: Function}} opciones
    */
   constructor(rutas, { contenedor, noEncontrada, alRenderizar }) {
@@ -119,7 +136,51 @@ export class Router {
       this.navegar(enlace.getAttribute('href'));
     });
 
+    // Precarga por intención: mouse encima, dedo encima o foco con teclado.
+    const intencion = (evento) => {
+      const enlace = evento.target.closest?.('a[data-link]');
+      if (enlace && enlace.origin === location.origin) this.precargar(quitarBase(enlace.pathname));
+    };
+    document.addEventListener('pointerover', intencion, { passive: true });
+    document.addEventListener('touchstart', intencion, { passive: true });
+    document.addEventListener('focusin', intencion);
+
     this.render();
+  }
+
+  /** Ruta de la tabla que coincide con una ruta interna, con sus parámetros. */
+  buscar(ruta) {
+    for (const candidata of this.rutas) {
+      const params = matchRoute(candidata.path, ruta);
+      if (params) return { candidata, params };
+    }
+    return null;
+  }
+
+  /**
+   * Devuelve la función de la vista. Si la ruta es diferida, la primera vez
+   * descarga el módulo y sus estilos EN PARALELO; después reutiliza la misma
+   * promesa (el navegador tampoco vuelve a pedir un módulo ya importado).
+   *
+   * @returns {Promise<Function>}
+   */
+  resolver(candidata) {
+    if (!candidata.cargar) return Promise.resolve(candidata.view);
+
+    candidata.pendiente ??= Promise.all([candidata.cargar(), cargarEstilos(candidata.estilos)])
+      .then(([vista]) => vista)
+      .catch((error) => {
+        candidata.pendiente = null; // sin red: que el siguiente intento lo reintente
+        throw error;
+      });
+
+    return candidata.pendiente;
+  }
+
+  /** Descarga por adelantado la vista de una ruta interna, sin pintarla. */
+  precargar(ruta) {
+    const encontrada = this.buscar(ruta);
+    if (encontrada?.candidata.cargar) this.resolver(encontrada.candidata).catch(() => {});
   }
 
   /** Navega a una URL ya completa (la que trae el href del enlace). */
@@ -133,28 +194,41 @@ export class Router {
   async render() {
     const ruta = rutaActual();
     const token = ++this.renderId;
+    const vigente = () => this.renderId === token;
 
-    let encontrada = null;
-    let params = null;
-
-    for (const candidata of this.rutas) {
-      const resultado = matchRoute(candidata.path, ruta);
-      if (resultado) {
-        encontrada = candidata;
-        params = resultado;
-        break;
-      }
-    }
-
-    const vista = encontrada ? encontrada.view : this.noEncontrada;
-    document.title = encontrada?.titulo
-      ? `${encontrada.titulo} · SoilAir`
+    const encontrada = this.buscar(ruta);
+    document.title = encontrada?.candidata.titulo
+      ? `${encontrada.candidata.titulo} · SoilAir`
       : 'Ruta no encontrada · SoilAir';
 
-    const contexto = { params: params ?? {}, ruta };
+    const contexto = { params: encontrada?.params ?? {}, ruta };
 
-    this.contenedor.innerHTML = '<p class="cargando">Cargando…</p>';
-    this.contenedor.innerHTML = await vista(contexto);
+    // Mientras baja una vista diferida se deja lo que había (en la primera
+    // carga, el skeleton de index.html). "Cargando…" solo si tarda.
+    const indicador = setTimeout(() => {
+      if (vigente()) this.contenedor.innerHTML = '<p class="cargando">Cargando…</p>';
+    }, ESPERA_INDICADOR);
+
+    let vista;
+    try {
+      vista = encontrada ? await this.resolver(encontrada.candidata) : this.noEncontrada;
+    } catch (error) {
+      console.warn(`[router] no se pudo cargar la vista de ${ruta}: ${error.message}`);
+      vista = () =>
+        this.noEncontrada({
+          codigo: 'Sin conexión',
+          titulo: 'No se pudo abrir esta sección',
+          mensaje: 'Esta pantalla todavía no estaba guardada en el dispositivo. Revisa tu conexión e inténtalo de nuevo.',
+        });
+    }
+
+    const html = await vista(contexto);
+    clearTimeout(indicador);
+
+    // Si el usuario ya navegó a otra ruta mientras esta bajaba, no se pinta.
+    if (!vigente()) return;
+
+    this.contenedor.innerHTML = html;
     window.scrollTo({ top: 0 });
 
     this.alRenderizar?.(ruta);
